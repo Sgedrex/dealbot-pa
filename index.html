@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DealBot · Comparador de Supermercados PA</title>
+<style>
+  :root{
+    --bg:#eef3f0; --card:#ffffff; --card2:#f4f8f6; --line:#e4ebe7;
+    --txt:#102a1e; --mut:#6a7c73; --green:#15a34a; --green-d:#137a39;
+    --greenbg:#dcfce7; --accent:#15a34a;
+    --shadow:0 1px 2px rgba(16,42,30,.05), 0 2px 8px rgba(16,42,30,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:16px;max-width:1120px;margin:0 auto;-webkit-font-smoothing:antialiased}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 18px;box-shadow:var(--shadow)}
+  h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
+  h1 .tag{background:var(--green);color:#fff;border-radius:7px;padding:1px 7px;font-size:15px;margin-left:2px}
+  .sub{color:var(--mut);font-size:12px;margin-top:3px}
+  .pill{background:var(--greenbg);border:1px solid #bbf7d0;border-radius:999px;padding:6px 12px;font-size:11px;color:var(--green-d);font-weight:600}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow)}
+  .kpi .n{font-size:23px;font-weight:800;letter-spacing:-.5px}.kpi.deal .n{color:var(--green)}
+  .kpi .l{font-size:10.5px;color:var(--mut);margin-top:3px;font-weight:500}
+  .filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+  .catbar{display:flex;gap:7px;flex-wrap:wrap}
+  .cat{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+  .cat:hover{border-color:#bbf7d0;color:var(--txt)}
+  .cat.active{background:var(--green);color:#fff;border-color:var(--green)}
+  input,select{background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font-size:13px;outline:none;box-shadow:var(--shadow)}
+  input{flex:1;min-width:160px}
+  input:focus,select:focus{border-color:var(--green)}
+  input::placeholder{color:var(--mut)}
+  .tabs{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+  .tab{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+  .tab:hover{color:var(--txt)}
+  .tab.active{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn-exp{background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 13px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
+  .btn-exp:hover{border-color:var(--green);color:var(--green-d)}
+  .btn-upd{background:var(--green);border:1px solid var(--green);color:#fff;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
+  .btn-upd:hover{background:var(--green-d)}
+  .btn-upd:disabled{opacity:.7;cursor:wait}
+  .acciones{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .view{display:none}.view.active{display:block}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;background:var(--card);min-width:760px}
+  th,td{padding:11px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--mut);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.5px;position:sticky;top:0;background:var(--card2)}
+  td.name,th.name{white-space:normal;min-width:210px}
+  tbody tr:nth-child(even){background:#fafcfb}
+  tbody tr:hover{background:#f0fbf4}
+  tr:last-child td{border-bottom:none}
+  td.r,th.r{text-align:right}td.c,th.c{text-align:center}
+  .best{background:var(--greenbg);font-weight:800;color:var(--green-d);border-radius:7px;padding:2px 7px}
+  .pos{color:var(--green-d);font-weight:700}.zero{color:var(--mut)}
+  .chip{display:inline-block;font-size:10.5px;font-weight:700;border-radius:7px;padding:2px 8px}
+  .chip.xtra{background:#fff0e3;color:#c2410c}.chip.rey{background:#fde7ef;color:#be185d}
+  .chip.super99{background:#f3e8ff;color:#7c3aed}.chip.supercarnes{background:#fef7c3;color:#a16207}
+  .chip.superbaru{background:#dcfce7;color:#15803d}.chip.msmega{background:#e0f2fe;color:#0369a1}
+  .tagref{display:inline-block;font-size:10px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:4px;background:var(--card2)}
+  .badge-may{display:inline-block;font-size:9px;font-weight:700;color:#0369a1;background:#e0f2fe;border-radius:5px;padding:1px 5px;margin-left:3px;vertical-align:middle}
+  .tagpack{display:inline-block;font-size:10px;font-weight:700;color:#a16207;background:#fef7c3;border-radius:6px;padding:1px 6px;margin-left:4px}
+  .nota{font-size:11px;color:var(--mut);margin:10px 4px 0;line-height:1.6}
+  .colmay{opacity:.75}
+  .ean{display:block;font-size:10px;color:var(--mut);font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:2px}
+  td .best{color:var(--green-d)}
+  a.plink{color:var(--txt);text-decoration:none;font-weight:600}
+  a.plink:hover{color:var(--green-d)}
+  a.plink.best{color:var(--green-d);font-weight:800;background:var(--greenbg);border-radius:7px;padding:2px 7px}
+  a{color:var(--green-d);text-decoration:none}
+  .empty{color:var(--mut);padding:18px;text-align:center}
+  footer{color:var(--mut);font-size:11px;text-align:center;margin-top:20px;line-height:1.6}
+  /* acciones de fila (canasta + historico) */
+  .rowacts{display:inline-flex;gap:5px;margin-right:6px;vertical-align:middle}
+  .iconbtn{border:1px solid var(--line);background:var(--card);border-radius:7px;width:24px;height:24px;font-size:12px;cursor:pointer;line-height:1;padding:0;color:var(--mut)}
+  .iconbtn:hover{border-color:var(--green);color:var(--green-d)}
+  .iconbtn.on{background:var(--green);border-color:var(--green);color:#fff}
+  /* analisis: ranking */
+  .analwrap{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+  .panel h3{font-size:14px;font-weight:800;margin-bottom:4px}
+  .panel .ph{font-size:11px;color:var(--mut);margin-bottom:12px}
+  .rank{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .rank:last-child{border-bottom:none}
+  .rank .pos{font-size:15px;font-weight:800;width:24px;color:var(--mut)}
+  .rank .barwrap{flex:1}
+  .rank .bar{height:9px;background:var(--greenbg);border-radius:6px;overflow:hidden;margin-top:5px}
+  .rank .bar i{display:block;height:100%;background:var(--green);border-radius:6px}
+  .rank .meta{font-size:11px;color:var(--mut)}
+  /* canasta */
+  .canasta-fab{position:fixed;right:18px;bottom:18px;background:var(--green);color:#fff;border:none;border-radius:999px;padding:13px 18px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(21,163,74,.4);z-index:40}
+  .overlay{position:fixed;inset:0;background:rgba(16,42,30,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .overlay.open{display:flex}
+  .sheet{background:var(--card);border-radius:18px;max-width:620px;width:100%;max-height:85vh;overflow:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .sheet h2{font-size:17px;font-weight:800;margin-bottom:2px}
+  .sheet .x{float:right;border:none;background:var(--card2);border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer;color:var(--mut)}
+  .cline{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .cstore{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:10px}
+  .cstore .row2{display:flex;justify-content:space-between;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:600}
+  .cstore .row2.win{background:var(--greenbg);border-color:var(--green);color:var(--green-d);font-weight:800}
+  @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.analwrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🛒 DealBot <span class="tag">PA</span></h1>
+      <div class="sub" id="sub">Comparador de precios · 6 supermercados de Panamá</div>
+    </div>
+    <div class="pill" id="updated">Cargando…</div>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n" id="k-prod">–</div><div class="l">Productos (categoría)</div></div>
+    <div class="kpi"><div class="n" id="k-match">–</div><div class="l">Comparables</div></div>
+    <div class="kpi deal"><div class="n" id="k-deals">–</div><div class="l">Deals activos</div></div>
+    <div class="kpi"><div class="n" id="k-save">–</div><div class="l">Máx. ahorro</div></div>
+  </div>
+
+  <div class="catbar" id="catbar" style="margin-bottom:12px"></div>
+
+  <div class="filtros">
+    <input id="q" placeholder="🔎 Buscar por nombre o SKU…" oninput="render()" />
+    <select id="f-marca" onchange="render()"><option value="">Todas las marcas</option></select>
+    <select id="f-ref" onchange="render()" style="display:none">
+      <option value="">Toda referencia</option>
+    </select>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="comp" onclick="setView('comp')">🏪 Comparador retail</div>
+    <div class="tab" data-v="deals" onclick="setView('deals')">📋 Catálogo retail</div>
+    <div class="tab" data-v="may" onclick="setView('may')">🏭 Mayoristas</div>
+    <div class="tab" data-v="anal" onclick="setView('anal')">📊 Análisis</div>
+    <div class="acciones">
+      <button class="btn-upd" id="btn-upd" onclick="actualizar()">🔄 Actualizar precios</button>
+      <button class="btn-exp" onclick="exportExcel()">📥 Excel</button>
+      <button class="btn-exp" onclick="exportPDF()">📄 PDF</button>
+    </div>
+  </div>
+
+  <div class="view active" id="view-comp">
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="name">Producto</th><th>Marca</th>
+          <th class="r">SuperXtra</th><th class="r">Super Rey</th><th class="r">Super99</th>
+          <th class="r">S.Carnes</th><th class="r">S.Barú</th>
+          <th class="c">Más barato</th><th class="r">Ahorro</th>
+        </tr></thead>
+        <tbody id="comp-rows"><tr><td colspan="9" class="empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="nota">🏪 Comparación entre <b>tiendas retail</b> (precio por unidad). Los <b>mayoristas</b> (packs) están en su propia pestaña 🏭.</div>
+  </div>
+
+  <div class="view" id="view-deals">
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="name">Producto</th><th>Marca</th><th>Tienda</th>
+          <th class="r">Precio</th><th class="r">Lista</th><th class="r">Desc.</th>
+        </tr></thead>
+        <tbody id="deals-rows"><tr><td colspan="6" class="empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="view" id="view-may">
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="name">Producto</th><th>Marca</th><th>Mayorista</th><th class="r">Precio pack</th>
+        </tr></thead>
+        <tbody id="may-rows"><tr><td colspan="4" class="empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="nota">🏭 Precios <b>mayoristas</b> (packs de 4u/12u, etc.). No se comparan con retail porque la unidad de venta es distinta.</div>
+  </div>
+
+  <div class="view" id="view-anal">
+    <div class="analwrap">
+      <div class="panel">
+        <h3>🏆 Ranking de tiendas</h3>
+        <div class="ph" id="rank-ph">Qué tan barata es cada tienda en esta categoría (1.00 = siempre la más barata)</div>
+        <div id="rank-list"></div>
+      </div>
+      <div class="panel">
+        <h3>📈 Índice de precios</h3>
+        <div class="ph">Precio promedio de la categoría por día (la tendencia crece con cada actualización)</div>
+        <canvas id="chart-infl" height="170"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <button class="canasta-fab" id="canasta-fab" onclick="abrirCanasta()" style="display:none">🧺 Canasta (<span id="canasta-n">0</span>)</button>
+
+  <div class="overlay" id="ov-canasta">
+    <div class="sheet">
+      <button class="x" onclick="cerrar('ov-canasta')">✕</button>
+      <h2>🧺 Mi canasta</h2>
+      <div class="ph" style="font-size:11px;color:var(--mut);margin-bottom:8px">Dónde sale más barato comprar todo junto (entre tiendas retail)</div>
+      <div id="canasta-items"></div>
+      <div class="cstore" id="canasta-totales"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="ov-hist">
+    <div class="sheet">
+      <button class="x" onclick="cerrar('ov-hist')">✕</button>
+      <h2 id="hist-titulo">📈 Histórico</h2>
+      <div class="ph" style="font-size:11px;color:var(--mut);margin-bottom:10px" id="hist-sub"></div>
+      <canvas id="chart-hist" height="200"></canvas>
+    </div>
+  </div>
+
+  <footer>
+    DealBot · datos en vivo desde Supabase · SuperXtra · Super Rey · Super99 · SuperCarnes · Super Barú · MsMega<br/>
+    Emparejado por código de barras. Actualización manual mientras se itera.
+  </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://xjkpaxsptfmpkgtymbuu.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa3BheHNwdGZtcGtndHltYnV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDc4NjksImV4cCI6MjA5NzgyMzg2OX0.7lzxj3AC3lo177Y8MjGN5wYs0p5p49gJkb22L2n9e0A";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  const money = v => v==null ? "—" : "$" + Number(v).toFixed(2);
+  const tiendaNombre = { superxtra:"SuperXtra", superrey:"Super Rey", msmega:"MsMega", super99:"Super99", supercarnes:"SuperCarnes", superbaru:"Super Barú" };
+  const chipClass = r => ({superxtra:'xtra',superrey:'rey',msmega:'msmega',super99:'super99',supercarnes:'supercarnes',superbaru:'superbaru'})[r] || 'super99';
+  const slugDe = n => ({'SuperXtra':'superxtra','Super Rey':'superrey','Super99':'super99','SuperCarnes':'supercarnes','Super Barú':'superbaru','MsMega':'msmega'})[n] || 'super99';
+
+  let CATS = [], catActual = null, compData = [], dealsData = [], TIPO = {}, vistaActual = 'comp';
+  let rankData = [], inflData = [], canasta = new Map(), chartInfl = null, chartHist = null;
+  const esMayorista = r => TIPO[r] === 'mayorista';
+  const COLORS = { superxtra:'#ea7a2b', superrey:'#db2777', super99:'#7c3aed', supercarnes:'#ca8a04', superbaru:'#15803d', msmega:'#0284c7' };
+  const num = v => v==null||v==='' ? '' : Number(v);
+
+  function setView(v){
+    vistaActual = v;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.v===v));
+    document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+    document.getElementById('view-'+v).classList.add('active');
+    if(v==='anal') renderAnalisis();
+  }
+
+  // ===== Análisis: ranking + índice de precios =====
+  function renderAnalisis(){
+    // Ranking (ordenado por indice_precio asc = más barato primero)
+    const r = [...rankData].sort((a,b)=>Number(a.indice_precio)-Number(b.indice_precio));
+    const maxWins = Math.max(1, ...r.map(x=>Number(x.veces_mas_barata)||0));
+    const medallas = ['🥇','🥈','🥉'];
+    document.getElementById('rank-list').innerHTML = r.length ? r.map((x,i)=>{
+      const w = Math.round((Number(x.veces_mas_barata)||0)/maxWins*100);
+      const sobre = ((Number(x.indice_precio)-1)*100).toFixed(1);
+      return `<div class="rank">
+        <div class="pos">${medallas[i]||(i+1)}</div>
+        <div class="barwrap">
+          <div style="display:flex;justify-content:space-between">
+            <b>${tiendaNombre[x.retailer]||x.retailer}</b>
+            <span class="meta">gana ${x.veces_mas_barata}/${x.productos} · +${sobre}% vs mín</span>
+          </div>
+          <div class="bar"><i style="width:${w}%"></i></div>
+        </div>
+      </div>`;
+    }).join("") : `<div class="empty">Sin datos suficientes para rankear.</div>`;
+
+    // Índice de precios (línea por categoría en el tiempo)
+    const labels = inflData.map(d=>new Date(d.periodo).toLocaleDateString('es-PA',{day:'2-digit',month:'short'}));
+    const vals = inflData.map(d=>Number(d.precio_promedio));
+    if(chartInfl) chartInfl.destroy();
+    const ctx = document.getElementById('chart-infl');
+    chartInfl = new Chart(ctx, {
+      type:'line',
+      data:{ labels, datasets:[{ label:'Precio promedio', data:vals, borderColor:'#15a34a', backgroundColor:'rgba(21,163,74,.12)', fill:true, tension:.3, pointRadius:4 }] },
+      options:{ plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>'$'+v } } } }
+    });
+    if(inflData.length<2){
+      const d=ctx.getContext('2d'); // nota visual si hay 1 solo punto
+    }
+  }
+
+  // ===== Histórico por producto =====
+  async function verHistorico(ean){
+    const dd = compData.find(x=>x.ean===ean) || dealsData.find(x=>x.ean===ean) || {};
+    const nombre = dd.nombre || ('SKU '+ean);
+    document.getElementById('hist-titulo').textContent = '📈 '+nombre;
+    document.getElementById('hist-sub').textContent = 'Evolución de precio por tienda · SKU '+ean;
+    abrir('ov-hist');
+    const { data } = await sb.from('dealbot_historico').select('*').eq('ean', ean).order('capturado_at');
+    const rows = data || [];
+    // agrupar por retailer -> {x: fecha, y: precio}
+    const porT = {};
+    rows.forEach(r=>{ (porT[r.retailer] ??= []).push({ x:new Date(r.capturado_at).getTime(), y:Number(r.price) }); });
+    const ds = Object.entries(porT).map(([ret,pts])=>({
+      label: tiendaNombre[ret]||ret, data: pts.sort((a,b)=>a.x-b.x),
+      borderColor: COLORS[ret]||'#888', backgroundColor:'transparent', tension:.25, pointRadius:3, spanGaps:true
+    }));
+    if(chartHist) chartHist.destroy();
+    chartHist = new Chart(document.getElementById('chart-hist'), {
+      type:'line',
+      data:{ datasets: ds },
+      options:{ parsing:false, plugins:{legend:{position:'bottom'}},
+        scales:{ x:{ type:'linear', ticks:{ maxTicksLimit:6, callback:function(v){ return new Date(v).toLocaleString('es-PA',{day:'2-digit',month:'short',hour:'2-digit'}); } } },
+                 y:{ ticks:{ callback:v=>'$'+v } } } }
+    });
+  }
+
+  // ===== Canasta =====
+  function toggleCanasta(ean){
+    const d = compData.find(x=>x.ean===ean); if(!d) return;
+    if(canasta.has(ean)) canasta.delete(ean); else canasta.set(ean, d);
+    document.getElementById('canasta-n').textContent = canasta.size;
+    document.getElementById('canasta-fab').style.display = canasta.size ? '' : 'none';
+    document.querySelectorAll('.cb-'+ean).forEach(b=>b.classList.toggle('on', canasta.has(ean)));
+  }
+  function abrirCanasta(){
+    abrir('ov-canasta');
+    const tiendas = [['superxtra','precio_xtra'],['superrey','precio_rey'],['super99','precio_99'],['supercarnes','precio_carnes'],['superbaru','precio_baru']];
+    const items = [...canasta.values()];
+    document.getElementById('canasta-items').innerHTML = items.length ? items.map(d=>
+      `<div class="cline"><span>${d.nombre}</span><button class="iconbtn" onclick="toggleCanasta('${d.ean}');abrirCanasta()">✕</button></div>`).join("") : '<div class="empty">Canasta vacía.</div>';
+    // total por tienda (solo productos que la tienda tiene)
+    const tot = tiendas.map(([ret,campo])=>{
+      let suma=0, n=0;
+      items.forEach(d=>{ const p=d[campo]; if(p!=null){ suma+=Number(p); n++; } });
+      return { ret, suma, n };
+    }).filter(t=>t.n>0).sort((a,b)=>a.suma-b.suma);
+    const completos = tot.filter(t=>t.n===items.length);
+    const minComp = completos.length ? Math.min(...completos.map(t=>t.suma)) : null;
+    document.getElementById('canasta-totales').innerHTML = items.length ? tot.map(t=>
+      `<div class="row2 ${t.suma===minComp&&t.n===items.length?'win':''}">
+         <span>${tiendaNombre[t.ret]||t.ret} ${t.n<items.length?`<span style="color:var(--mut);font-weight:500">(${t.n}/${items.length})</span>`:''}</span>
+         <span>$${t.suma.toFixed(2)}</span></div>`).join("") : '';
+  }
+  function abrir(id){ document.getElementById(id).classList.add('open'); }
+  function cerrar(id){ document.getElementById(id).classList.remove('open'); }
+  document.addEventListener('click', e=>{ if(e.target.classList.contains('overlay')) e.target.classList.remove('open'); });
+
+  // ===== Actualizar precios (dispara el scraping de las 6 tiendas) =====
+  const SCAN_URL = "https://xjkpaxsptfmpkgtymbuu.supabase.co/functions/v1/dealbot-scan";
+  async function actualizar(){
+    const b = document.getElementById('btn-upd');
+    const orig = '🔄 Actualizar precios';
+    b.disabled = true; b.textContent = '⏳ Actualizando… (~10s)';
+    try{
+      const r = await fetch(SCAN_URL, { method:'POST' });
+      const j = await r.json();
+      if(!j.ok) throw new Error(j.error||'error');
+      if(catActual) await selCat(catActual.slug);   // recarga datos en pantalla
+      b.textContent = '✅ '+j.scrapeados+' productos actualizados';
+    }catch(e){
+      b.textContent = '⚠️ Error, reintenta';
+    }finally{
+      setTimeout(()=>{ b.textContent = orig; b.disabled = false; }, 3000);
+    }
+  }
+
+  // ===== Export (Excel / PDF) de la vista activa con filtros =====
+  function datosExport(){
+    const comp = aplicaFiltros(compData);
+    const dealsAll = aplicaFiltros(dealsData);
+    const deals = dealsAll.filter(d=>!esMayorista(d.retailer));
+    const dealsMay = dealsAll.filter(d=>esMayorista(d.retailer));
+    const cat = catActual ? catActual.nombre : '';
+    if(vistaActual==='comp'){
+      return { titulo:`Comparador retail - ${cat}`,
+        headers:['Producto','Marca','SKU','SuperXtra','Super Rey','Super99','SuperCarnes','Super Baru','Mas barato','Ahorro %'],
+        rows: comp.map(d=>[d.nombre, d.marca||'', d.ean||'', num(d.precio_xtra), num(d.precio_rey), num(d.precio_99), num(d.precio_carnes), num(d.precio_baru), d.tienda_mas_barata||'', num(d.ahorro_pct)]) };
+    } else if(vistaActual==='deals'){
+      return { titulo:`Catalogo retail - ${cat}`,
+        headers:['Producto','Marca','Tienda','SKU','Precio','Lista','Desc %'],
+        rows: deals.map(d=>[d.nombre, d.marca||'', tiendaNombre[d.retailer]||d.retailer, d.ean||'', num(d.price), (Number(d.list_price)>Number(d.price)?num(d.list_price):''), (Number(d.desc_retailer_pct)>0?num(d.desc_retailer_pct):'')]) };
+    } else {
+      return { titulo:`Mayoristas - ${cat}`,
+        headers:['Producto','Marca','Mayorista','SKU','Precio pack'],
+        rows: dealsMay.map(d=>[d.nombre, d.marca||'', tiendaNombre[d.retailer]||d.retailer, d.ean||'', num(d.price)]) };
+    }
+  }
+  const nombreArchivo = t => t.normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]','g'),'').replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');
+
+  function exportExcel(){
+    const {titulo, headers, rows} = datosExport();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = headers.map((h,i)=>({ wch: i===0 ? 42 : Math.max(10, h.length+2) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'DealBot');
+    XLSX.writeFile(wb, nombreArchivo(titulo)+'.xlsx');
+  }
+
+  function exportPDF(){
+    const {titulo, headers, rows} = datosExport();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+    doc.setFontSize(14); doc.text('DealBot PA · '+titulo, 14, 14);
+    doc.setFontSize(9); doc.setTextColor(120);
+    doc.text('Generado '+new Date().toLocaleString('es-PA')+'  ·  '+rows.length+' productos', 14, 20);
+    doc.autoTable({ head:[headers], body:rows, startY:24,
+      styles:{ fontSize:7, cellPadding:1.5 },
+      headStyles:{ fillColor:[21,163,74], textColor:255 },
+      alternateRowStyles:{ fillColor:[240,251,244] },
+      columnStyles:{ 0:{ cellWidth: vistaActual==='comp'?70:90 } } });
+    doc.save(nombreArchivo(titulo)+'.pdf');
+  }
+
+  async function init(){
+    const { data: tiendas } = await sb.from("dealbot_tiendas").select("retailer,tipo");
+    TIPO = Object.fromEntries((tiendas||[]).map(t=>[t.retailer,t.tipo]));
+    const { data } = await sb.from("dealbot_categorias").select("slug,nombre,tiene_referencia,activo").eq("activo",true).order("orden");
+    CATS = data || [];
+    document.getElementById("catbar").innerHTML = CATS.map(c=>
+      `<div class="cat" data-c="${c.slug}" onclick="selCat('${c.slug}')">${c.nombre}</div>`).join("");
+    if(CATS.length) selCat(CATS[0].slug);
+  }
+
+  async function selCat(slug){
+    catActual = CATS.find(c=>c.slug===slug);
+    document.querySelectorAll('.cat').forEach(el=>el.classList.toggle('active', el.dataset.c===slug));
+    document.getElementById("f-ref").style.display = catActual.tiene_referencia ? "" : "none";
+    document.getElementById("q").value = ""; document.getElementById("f-marca").value=""; document.getElementById("f-ref").value="";
+    document.getElementById("sub").textContent = catActual.nombre + " · 6 supermercados de Panamá";
+
+    const [comp, deals, rank, infl] = await Promise.all([
+      sb.from("dealbot_comparador").select("*").eq("categoria",slug).order("ahorro_pct",{ascending:false}),
+      sb.from("dealbot_deals_actuales").select("*").eq("categoria",slug).order("es_deal",{ascending:false}).order("desc_retailer_pct",{ascending:false}),
+      sb.from("dealbot_ranking").select("*").eq("categoria",slug),
+      sb.from("dealbot_inflacion").select("*").eq("categoria",slug).order("periodo")
+    ]);
+    compData = comp.data || []; dealsData = deals.data || [];
+    rankData = rank.data || []; inflData = infl.data || [];
+
+    // poblar marcas
+    const marcas = [...new Set(dealsData.map(d=>d.marca).filter(Boolean))].sort();
+    document.getElementById("f-marca").innerHTML = '<option value="">Todas las marcas</option>' + marcas.map(m=>`<option>${m}</option>`).join("");
+
+    // poblar referencias (dinamico segun categoria)
+    const refLabel = { agua:"En agua", aceite:"En aceite", vegetales:"Con vegetales", tomate:"En tomate", picante:"Picante" };
+    const refs = [...new Set(dealsData.map(d=>d.referencia).filter(Boolean))].sort();
+    document.getElementById("f-ref").innerHTML = '<option value="">Toda referencia</option>' + refs.map(r=>`<option value="${r}">${refLabel[r]||r}</option>`).join("");
+
+    const lastTs = dealsData.map(d=>d.capturado_at).filter(Boolean).sort().pop();
+    document.getElementById("updated").textContent = lastTs ? "Actualizado "+new Date(lastTs).toLocaleString("es-PA") : "Sin datos";
+    render();
+  }
+
+  function aplicaFiltros(arr){
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    const marca = document.getElementById("f-marca").value;
+    const ref = catActual.tiene_referencia ? document.getElementById("f-ref").value : "";
+    return arr.filter(d=>{
+      if(q && !((d.nombre||"").toLowerCase().includes(q) || (d.ean||"").includes(q))) return false;
+      if(marca && d.marca!==marca) return false;
+      if(ref && d.referencia!==ref) return false;
+      return true;
+    });
+  }
+
+  function render(){
+    const comp = aplicaFiltros(compData);
+    const dealsAll = aplicaFiltros(dealsData);
+    const deals = dealsAll.filter(d=>!esMayorista(d.retailer));   // catalogo retail
+    const dealsMay = dealsAll.filter(d=>esMayorista(d.retailer)); // mayoristas
+
+    document.getElementById("k-prod").textContent = dealsAll.length;
+    document.getElementById("k-match").textContent = comp.length;
+    document.getElementById("k-deals").textContent = deals.filter(d=>d.es_deal).length;
+    const maxSave = comp.reduce((m,d)=>Math.max(m, Number(d.ahorro_pct)||0),0);
+    document.getElementById("k-save").textContent = maxSave>0 ? "−"+maxSave.toFixed(1)+"%" : "—";
+
+    const esc = s => (s||"").replace(/"/g,"&quot;");
+    const cell = (v,best,label,link,nat)=> v==null ? "—" : (
+      link ? `<a class="plink${best===label?' best':''}" href="${link}" target="_blank" title="${esc(nat)}">${money(v)}</a>`
+           : `<span class="${best===label?'best':''}" title="${esc(nat)}">${money(v)}</span>`);
+    document.getElementById("comp-rows").innerHTML = comp.length ? comp.map(d=>{
+      const best=d.tienda_mas_barata;
+      const ref = d.referencia ? `<span class="tagref">${d.referencia}</span>` : "";
+      return `<tr>
+        <td class="name">
+          <span class="rowacts">
+            <button class="iconbtn" title="Ver histórico de precio" onclick="verHistorico('${d.ean}')">📈</button>
+            <button class="iconbtn cb-${d.ean}${canasta.has(d.ean)?' on':''}" title="Agregar a la canasta" onclick="toggleCanasta('${d.ean}')">🧺</button>
+          </span>${d.nombre}${ref}${d.ean?`<span class="ean">SKU ${d.ean}</span>`:""}</td>
+        <td>${d.marca||"—"}</td>
+        <td class="r">${cell(d.precio_xtra,best,"SuperXtra",d.link_xtra,d.nombre_xtra)}</td>
+        <td class="r">${cell(d.precio_rey,best,"Super Rey",d.link_rey,d.nombre_rey)}</td>
+        <td class="r">${cell(d.precio_99,best,"Super99",d.link_99,d.nombre_99)}</td>
+        <td class="r">${cell(d.precio_carnes,best,"SuperCarnes",d.link_carnes,d.nombre_carnes)}</td>
+        <td class="r">${cell(d.precio_baru,best,"Super Barú",d.link_baru,d.nombre_baru)}</td>
+        <td class="c">${best?`<span class="chip ${chipClass(slugDe(best))}">${best}</span>`:'<span class="zero">—</span>'}</td>
+        <td class="r ${Number(d.ahorro_pct)>0?'pos':'zero'}">${d.ahorro_pct==null?'<span class="zero" title="solo está en una tienda retail">1 retail</span>':(Number(d.ahorro_pct)>0?money(d.ahorro_abs)+" ("+Number(d.ahorro_pct).toFixed(0)+"%)":"=")}</td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="9" class="empty">${
+      deals.length
+        ? `No hay productos retail para comparar con estos filtros — esta selección aparece en una sola tienda retail.<br/>Revisa la pestaña <b>📋 Catálogo retail</b> o <b>🏭 Mayoristas</b>.`
+        : "Sin coincidencias con estos filtros."
+    }</td></tr>`;
+
+    const dord = [...deals].sort((a,b)=>(b.es_deal-a.es_deal)||(Number(b.desc_retailer_pct)-Number(a.desc_retailer_pct)));
+    document.getElementById("deals-rows").innerHTML = dord.length ? dord.map(d=>{
+      const pct=Number(d.desc_retailer_pct)||0;
+      const ref = d.referencia ? `<span class="tagref">${d.referencia}</span>` : "";
+      return `<tr>
+        <td class="name">${d.es_deal?"🔥 ":""}<a href="${d.link}" target="_blank">${d.nombre}</a>${ref}${d.ean?`<span class="ean">SKU ${d.ean}</span>`:""}</td>
+        <td>${d.marca||"—"}</td>
+        <td><span class="chip ${chipClass(d.retailer)}">${tiendaNombre[d.retailer]||d.retailer}</span></td>
+        <td class="r">${money(d.price)}</td>
+        <td class="r">${Number(d.list_price)>Number(d.price)?money(d.list_price):"—"}</td>
+        <td class="r ${pct>0?'pos':'zero'}">${pct>0?"−"+pct.toFixed(1)+"%":"—"}</td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="6" class="empty">Sin productos con estos filtros.</td></tr>`;
+
+    // Mayoristas (packs)
+    const mord = [...dealsMay].sort((a,b)=>Number(a.price)-Number(b.price));
+    document.getElementById("may-rows").innerHTML = mord.length ? mord.map(d=>{
+      const ref = d.referencia ? `<span class="tagref">${d.referencia}</span>` : "";
+      return `<tr>
+        <td class="name"><a href="${d.link}" target="_blank">${d.nombre}</a>${ref}${d.ean?`<span class="ean">SKU ${d.ean}</span>`:""}</td>
+        <td>${d.marca||"—"}</td>
+        <td><span class="chip ${chipClass(d.retailer)}">${tiendaNombre[d.retailer]||d.retailer}</span></td>
+        <td class="r">${money(d.price)}</td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="4" class="empty">Sin productos mayoristas con estos filtros.</td></tr>`;
+  }
+
+  init();
+</script>
+</body>
+</html>
