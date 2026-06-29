@@ -162,6 +162,15 @@
   .ptienda .pt{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:11px;font-weight:700;box-shadow:var(--shadow)}
   .ptienda .pt b{color:var(--green-d)}
   .iconbtn.fav.on{background:#fbbf24;border-color:#f59e0b;color:#fff}
+  /* ===== Clickeable (drill-down) ===== */
+  .kpi{cursor:pointer}
+  .kpi:hover{border-color:#bbf7d0}
+  .insight.clickable{cursor:pointer}
+  .insight.clickable:hover{border-color:var(--green)}
+  .oprow,.alrow{cursor:pointer;border-radius:8px;margin:0 -6px;padding-left:6px;padding-right:6px}
+  .oprow:hover,.alrow:hover{background:var(--card2)}
+  .pname{cursor:pointer}
+  .pname:hover{color:var(--green-d);text-decoration:underline}
 </style>
 </head>
 <body>
@@ -179,10 +188,10 @@
   </header>
 
   <div class="kpis">
-    <div class="kpi" title="Total de productos rastreados en esta categoría a través de las 7 tiendas."><div class="n" id="k-prod">–</div><div class="l">Productos monitoreados</div><div class="s" id="k-prod-s"></div></div>
-    <div class="kpi" title="Productos que aparecen en 2+ tiendas y se pueden comparar por código de barras (EAN)."><div class="n" id="k-match">–</div><div class="l">Comparables</div><div class="s" id="k-match-s"></div></div>
-    <div class="kpi deal" title="Productos con una diferencia de precio aprovechable o un descuento activo."><div class="n" id="k-deals">–</div><div class="l">Oportunidades activas</div><div class="s" id="k-deals-s"></div></div>
-    <div class="kpi" title="Mayor diferencia porcentual de precio encontrada para un mismo producto entre tiendas."><div class="n" id="k-save">–</div><div class="l">Máximo ahorro</div><div class="s" id="k-save-s"></div></div>
+    <div class="kpi" onclick="setView('deals')" title="Productos rastreados en esta categoría. Clic para ver el catálogo completo."><div class="n" id="k-prod">–</div><div class="l">Productos monitoreados</div><div class="s" id="k-prod-s"></div></div>
+    <div class="kpi" onclick="setView('comp')" title="Productos comparables en 2+ tiendas por código de barras. Clic para ver el comparador."><div class="n" id="k-match">–</div><div class="l">Comparables</div><div class="s" id="k-match-s"></div></div>
+    <div class="kpi deal" onclick="setView('anal')" title="Productos con diferencia de precio o descuento. Clic para ver Insights."><div class="n" id="k-deals">–</div><div class="l">Oportunidades activas</div><div class="s" id="k-deals-s"></div></div>
+    <div class="kpi" onclick="setView('comp')" title="Mayor diferencia de precio entre tiendas. Clic para ver el comparador (ordenado por ahorro)."><div class="n" id="k-save">–</div><div class="l">Máximo ahorro</div><div class="s" id="k-save-s"></div></div>
   </div>
 
   <div class="catbar" id="catbar" style="margin-bottom:12px"></div>
@@ -215,6 +224,7 @@
   </div>
 
   <div class="view active" id="view-comp">
+    <div id="filtro-gana" style="display:none;margin-bottom:10px;align-items:center;gap:8px"></div>
     <div class="tablewrap">
       <table>
         <thead><tr>
@@ -357,6 +367,9 @@
   let rankData = [], inflData = [], canasta = new Map(), chartInfl = null, chartHist = null;
   let favs = new Set(JSON.parse(localStorage.getItem('db_favs')||'[]'));
   let soloFavs = false;
+  let filtroGana = null;
+  function verGana(ret){ filtroGana = ret; setView('comp'); render(); document.getElementById('view-comp').scrollIntoView({behavior:'smooth',block:'start'}); }
+  function limpiarGana(){ filtroGana = null; render(); }
   const esMayorista = r => TIPO[r] === 'mayorista';
   const COLORS = { superxtra:'#ea7a2b', superrey:'#db2777', super99:'#7c3aed', supercarnes:'#ca8a04', superbaru:'#15803d', msmega:'#0284c7', machetazo:'#dc2626' };
   const num = v => v==null||v==='' ? '' : Number(v);
@@ -435,22 +448,22 @@
     const cards = [
       { ic:'🥇', iv: masBarato?tn(masBarato.retailer):'—', il:'Más barato', ix: masBarato?`gana ${masBarato.veces_mas_barata}/${masBarato.productos}`:'' },
       { ic:'💸', iv: masCaro&&masCaro!==masBarato?tn(masCaro.retailer):'—', il:'Más caro', ix: masCaro?`+${((Number(masCaro.indice_precio)-1)*100).toFixed(0)}% vs mín`:'' },
-      { ic:'🔥', iv: best?`−${Number(best.ahorro_pct).toFixed(0)}%`:'—', il:'Mejor oportunidad', ix: best?money(best.ahorro_abs)+' de diferencia':'' },
+      { ic:'🔥', iv: best?`−${Number(best.ahorro_pct).toFixed(0)}%`:'—', il:'Mejor oportunidad', ix: best?money(best.ahorro_abs)+' de diferencia':'', click: best?`verHistorico('${best.ean}')`:'' },
       { ic:'📊', iv: avg>0?money(avg):'—', il:'Ahorro promedio', ix: `${conAhorro.length} productos comparables` }
     ];
     document.getElementById('insight-cards').innerHTML = cards.map(c=>
-      `<div class="insight"><div class="ic">${c.ic}</div><div class="iv">${c.iv}</div><div class="il">${c.il}</div><div class="ix">${c.ix}</div></div>`).join('');
+      `<div class="insight${c.click?' clickable':''}"${c.click?` onclick="${c.click}" title="Ver histórico de este producto"`:''}><div class="ic">${c.ic}</div><div class="iv">${c.iv}</div><div class="il">${c.il}</div><div class="ix">${c.ix}</div></div>`).join('');
 
     // productos comparados por tienda (#27)
     const cob = TIENDAS_CAMPO.map(([ret,campo])=>({ ret, n: compData.filter(d=>Number(d[campo])>0).length }))
       .filter(t=>t.n>0).sort((a,b)=>b.n-a.n);
     document.getElementById('ptienda').innerHTML = '<span class="pt" style="background:transparent;border:none;box-shadow:none;color:var(--mut)">Cobertura por tienda:</span>' +
-      cob.map(t=>`<span class="pt">${tn(t.ret)} <b>${t.n}</b></span>`).join('');
+      cob.map(t=>`<span class="pt" onclick="verGana('${t.ret}')" style="cursor:pointer" title="Ver productos donde ${tn(t.ret)} es la más barata">${tn(t.ret)} <b>${t.n}</b></span>`).join('');
 
     // mejores oportunidades del día (top 6 por ahorro)
     const ops = [...conAhorro].sort((a,b)=>Number(b.ahorro_pct)-Number(a.ahorro_pct)).slice(0,6);
     document.getElementById('oportunidades').innerHTML = ops.length ? ops.map(d=>
-      `<div class="oprow"><span class="nm" title="${(d.nombre||'').replace(/"/g,'&quot;')}">${d.nombre}</span>
+      `<div class="oprow" onclick="verHistorico('${d.ean}')" title="Ver histórico de precio"><span class="nm">${d.nombre}</span>
         <span class="chip ${chipClass(slugDe(d.tienda_mas_barata))}" style="margin:0 6px">${d.tienda_mas_barata}</span>
         <span class="savechip">−${Number(d.ahorro_pct).toFixed(0)}% · ${money(d.ahorro_abs)}</span></div>`).join('')
       : '<div class="empty">Sin oportunidades comparables aún.</div>';
@@ -458,7 +471,7 @@
     // alertas: deals con descuento
     const al = [...deals].filter(d=>d.es_deal).sort((a,b)=>Number(b.desc_retailer_pct)-Number(a.desc_retailer_pct)).slice(0,6);
     document.getElementById('alertas').innerHTML = al.length ? al.map(d=>
-      `<div class="alrow"><span class="nm" title="${(d.nombre||'').replace(/"/g,'&quot;')}">🔥 ${d.nombre}</span>
+      `<div class="alrow" onclick="window.open('${(d.link||'').replace(/'/g,'')}','_blank')" title="Ver la oferta en la tienda"><span class="nm">🔥 ${d.nombre}</span>
         <span class="chip ${chipClass(d.retailer)}" style="margin:0 6px">${tn(d.retailer)}</span>
         <span class="savechip">−${Number(d.desc_retailer_pct).toFixed(0)}%</span></div>`).join('')
       : '<div class="empty">Sin descuentos activos en esta categoría. Las alertas de subida/bajada aparecerán cuando haya varios días de historia.</div>';
@@ -477,7 +490,7 @@
     document.getElementById('rank-list').innerHTML = r.length ? r.map((x,i)=>{
       const w = Math.round((Number(x.veces_mas_barata)||0)/maxWins*100);
       const sobre = ((Number(x.indice_precio)-1)*100).toFixed(1);
-      return `<div class="rank">
+      return `<div class="rank" onclick="verGana('${x.retailer}')" style="cursor:pointer" title="Ver productos donde ${tiendaNombre[x.retailer]||x.retailer} es la más barata">
         <div class="pos">${medallas[i]||(i+1)}</div>
         <div class="barwrap">
           <div style="display:flex;justify-content:space-between">
@@ -739,6 +752,7 @@
 
   async function selCat(slug){
     catActual = CATS.find(c=>c.slug===slug);
+    filtroGana = null;
     document.querySelectorAll('.cat').forEach(el=>el.classList.toggle('active', el.dataset.c===slug));
     // skeleton loading mientras carga (#21)
     ['comp-rows','deals-rows','may-rows'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<tr><td colspan="10" style="border:none"><div class="skelrow"></div><div class="skelrow"></div><div class="skelrow"></div><div class="skelrow"></div></td></tr>'; });
@@ -811,7 +825,11 @@
   }
 
   function render(){
-    const comp = aplicaFiltros(compData);
+    let comp = aplicaFiltros(compData);
+    if(filtroGana) comp = comp.filter(d=>d.tienda_mas_barata===(tiendaNombre[filtroGana]||filtroGana));
+    const fg = document.getElementById('filtro-gana');
+    if(filtroGana){ fg.style.display='flex'; fg.innerHTML = `<span style="font-size:12px;color:var(--mut)">Mostrando productos donde gana</span> <span class="chip ${chipClass(filtroGana)}">${tiendaNombre[filtroGana]||filtroGana}</span> <button class="iconbtn" onclick="limpiarGana()" title="Quitar filtro">✕</button>`; }
+    else { fg.style.display='none'; fg.innerHTML=''; }
     const dealsAll = aplicaFiltros(dealsData);
     const deals = dealsAll.filter(d=>!esMayorista(d.retailer));   // catalogo retail
     const dealsMay = dealsAll.filter(d=>esMayorista(d.retailer)); // mayoristas
@@ -842,7 +860,7 @@
             <button class="iconbtn fav${favs.has(d.ean)?' on':''}" title="Marcar favorito" onclick="toggleFav('${d.ean}')">${favs.has(d.ean)?'★':'☆'}</button>
             <button class="iconbtn" title="Ver histórico de precio" onclick="verHistorico('${d.ean}')">📈</button>
             <button class="iconbtn cb-${d.ean}${canasta.has(d.ean)?' on':''}" title="Agregar a la canasta" onclick="toggleCanasta('${d.ean}')">🧺</button>
-          </span>${d.nombre}${ref}${d.ean?`<span class="ean">SKU ${d.ean}</span>`:""}</td>
+          </span><span class="pname" title="Ver histórico de precio" onclick="verHistorico('${d.ean}')">${d.nombre}</span>${ref}${d.ean?`<span class="ean">SKU ${d.ean}</span>`:""}</td>
         <td>${d.marca||"—"}</td>
         <td class="r">${cell(d.precio_xtra,best,"SuperXtra",d.link_xtra,d.nombre_xtra)}</td>
         <td class="r">${cell(d.precio_rey,best,"Super Rey",d.link_rey,d.nombre_rey)}</td>
