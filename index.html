@@ -190,8 +190,8 @@
   <div class="filtros">
     <input id="q" list="sug" autocomplete="off" placeholder="🔎 Buscar por nombre, marca o SKU…" oninput="render()" />
     <datalist id="sug"></datalist>
-    <select id="f-marca" onchange="render()"><option value="">Todas las marcas</option></select>
-    <select id="f-ref" onchange="render()" style="display:none">
+    <select id="f-marca" onchange="renderFade()"><option value="">Todas las marcas</option></select>
+    <select id="f-ref" onchange="renderFade()" style="display:none">
       <option value="">Toda referencia</option>
     </select>
     <button class="btn-exp" id="btn-favs" onclick="toggleSoloFavs()" title="Ver solo favoritos">⭐ Favoritos</button>
@@ -338,6 +338,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script type="module">
+  import { animate, stagger } from "https://cdn.jsdelivr.net/npm/motion@10.18.0/+esm";
+  window.Motion = { animate, stagger };
+</script>
 <script>
   const SUPABASE_URL = "https://xjkpaxsptfmpkgtymbuu.supabase.co";
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa3BheHNwdGZtcGtndHltYnV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDc4NjksImV4cCI6MjA5NzgyMzg2OX0.7lzxj3AC3lo177Y8MjGN5wYs0p5p49gJkb22L2n9e0A";
@@ -357,11 +361,44 @@
   const COLORS = { superxtra:'#ea7a2b', superrey:'#db2777', super99:'#7c3aed', supercarnes:'#ca8a04', superbaru:'#15803d', msmega:'#0284c7', machetazo:'#dc2626' };
   const num = v => v==null||v==='' ? '' : Number(v);
 
+  // ===== Animaciones sutiles (Motion One — equivalente vanilla de Framer Motion) =====
+  const MO = () => window.Motion;
+  function fxEntrada(selector, dist){
+    const M = MO(); if(!M) return;
+    try{ M.animate(selector, { opacity:[0,1], transform:['translateY('+(dist||8)+'px)','translateY(0)'] },
+      { delay: M.stagger ? M.stagger(0.045) : 0, duration:0.4, easing:[0.22,1,0.36,1] }); }catch(e){}
+  }
+  function fxFade(el){
+    const M = MO(); if(!M||!el) return;
+    try{ M.animate(el, { opacity:[0.45,1] }, { duration:0.28, easing:'ease-out' }); }catch(e){}
+  }
+  function animCount(id, to, fmt){
+    const el = document.getElementById(id); if(!el) return;
+    const dur=700, t0=performance.now();
+    requestAnimationFrame(function step(t){
+      const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3);
+      el.textContent = fmt(to*e);
+      if(p<1) requestAnimationFrame(step);
+    });
+  }
+  function animarKPIs(){
+    const total=dealsData.length, comp=compData.length;
+    const deals=dealsData.filter(d=>!esMayorista(d.retailer)&&d.es_deal).length;
+    const maxSave=compData.reduce((m,d)=>Math.max(m,Number(d.ahorro_pct)||0),0);
+    animCount('k-prod', total, v=>String(Math.round(v)));
+    animCount('k-match', comp, v=>String(Math.round(v)));
+    animCount('k-deals', deals, v=>String(Math.round(v)));
+    animCount('k-save', maxSave, v=> maxSave>0?'−'+v.toFixed(1)+'%':'—');
+    fxEntrada('.kpi');
+  }
+  function renderFade(){ render(); fxFade(document.getElementById('view-'+vistaActual)); }
+
   function setView(v){
     vistaActual = v;
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.v===v));
     document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
     document.getElementById('view-'+v).classList.add('active');
+    fxFade(document.getElementById('view-'+v));
     if(v==='anal'){ renderAnalisis(); renderInsights(); }
   }
 
@@ -425,6 +462,10 @@
         <span class="chip ${chipClass(d.retailer)}" style="margin:0 6px">${tn(d.retailer)}</span>
         <span class="savechip">−${Number(d.desc_retailer_pct).toFixed(0)}%</span></div>`).join('')
       : '<div class="empty">Sin descuentos activos en esta categoría. Las alertas de subida/bajada aparecerán cuando haya varios días de historia.</div>';
+
+    fxEntrada('#insight-cards .insight');
+    fxEntrada('#oportunidades .oprow', 6);
+    fxEntrada('#alertas .alrow', 6);
   }
 
   // ===== Análisis: ranking + índice de precios =====
@@ -588,7 +629,7 @@
   function toggleSoloFavs(){
     soloFavs = !soloFavs;
     document.getElementById('btn-favs').classList.toggle('on', soloFavs);
-    render();
+    renderFade();
   }
   function compartir(){
     const u = new URL(location.href);
@@ -730,6 +771,8 @@
     ultimaTs = dealsData.map(d=>d.capturado_at).filter(Boolean).sort().pop();
     actualizarSysbar();
     render();
+    animarKPIs();
+    fxFade(document.getElementById('view-'+vistaActual));
   }
 
   // ===== Barra de estado del sistema (hero) =====
