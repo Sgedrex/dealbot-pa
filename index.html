@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DealBot · Comparador de Supermercados PA</title>
+<title>DealBot · Retail Price Intelligence Platform</title>
 <style>
   :root{
     --bg:#eef3f0; --card:#ffffff; --card2:#f4f8f6; --line:#e4ebe7;
@@ -13,15 +13,26 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:16px;max-width:1120px;margin:0 auto;-webkit-font-smoothing:antialiased}
-  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 18px;box-shadow:var(--shadow)}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 18px;box-shadow:var(--shadow)}
   h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
   h1 .tag{background:var(--green);color:#fff;border-radius:7px;padding:1px 7px;font-size:15px;margin-left:2px}
-  .sub{color:var(--mut);font-size:12px;margin-top:3px}
-  .pill{background:var(--greenbg);border:1px solid #bbf7d0;border-radius:999px;padding:6px 12px;font-size:11px;color:var(--green-d);font-weight:600}
+  .sub{color:var(--mut);font-size:11px;margin-top:3px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+  .sysbar{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+  .sys{display:flex;flex-direction:column;justify-content:center;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:5px 11px;min-width:80px}
+  .sys .sl{font-size:8.5px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .sys .sv{font-size:12px;color:var(--txt);font-weight:800;margin-top:1px}
+  .sys.on{flex-direction:row;align-items:center;gap:7px;background:var(--greenbg);border-color:#bbf7d0}
+  .sys.on .sv{color:var(--green-d)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(21,163,74,.18);animation:pulse 2s infinite;flex:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow)}
-  .kpi .n{font-size:23px;font-weight:800;letter-spacing:-.5px}.kpi.deal .n{color:var(--green)}
-  .kpi .l{font-size:10.5px;color:var(--mut);margin-top:3px;font-weight:500}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green);opacity:0;transition:.2s}
+  .kpi:hover::before{opacity:.55}
+  .kpi .n{font-size:24px;font-weight:800;letter-spacing:-.5px}.kpi.deal .n{color:var(--green)}
+  .kpi .l{font-size:10.5px;color:var(--mut);margin-top:3px;font-weight:600}
+  .kpi .s{font-size:10px;color:var(--green-d);margin-top:7px;font-weight:700;background:var(--greenbg);display:inline-block;padding:2px 7px;border-radius:6px}
+  .kpi .s:empty{display:none}
   .filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
   .catbar{display:flex;gap:7px;flex-wrap:wrap}
   .cat{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
@@ -57,6 +68,7 @@
   .chip.xtra{background:#fff0e3;color:#c2410c}.chip.rey{background:#fde7ef;color:#be185d}
   .chip.super99{background:#f3e8ff;color:#7c3aed}.chip.supercarnes{background:#fef7c3;color:#a16207}
   .chip.superbaru{background:#dcfce7;color:#15803d}.chip.msmega{background:#e0f2fe;color:#0369a1}
+  .chip.machetazo{background:#fee2e2;color:#b91c1c}
   .tagref{display:inline-block;font-size:10px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:4px;background:var(--card2)}
   .badge-may{display:inline-block;font-size:9px;font-weight:700;color:#0369a1;background:#e0f2fe;border-radius:5px;padding:1px 5px;margin-left:3px;vertical-align:middle}
   .tagpack{display:inline-block;font-size:10px;font-weight:700;color:#a16207;background:#fef7c3;border-radius:6px;padding:1px 6px;margin-left:4px}
@@ -99,41 +111,98 @@
   .cstore .row2{display:flex;justify-content:space-between;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:600}
   .cstore .row2.win{background:var(--greenbg);border-color:var(--green);color:var(--green-d);font-weight:800}
   @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.analwrap{grid-template-columns:1fr}}
+  /* ===== P2 · UX ===== */
+  .filtros input#q{flex:2;min-width:300px;padding:12px 15px;font-size:14px;font-weight:600;border-radius:12px}
+  .filtros input#q:focus{box-shadow:0 0 0 4px rgba(21,163,74,.12)}
+  .cat{transition:transform .14s ease, background .14s, border-color .14s, color .14s}
+  .cat .ci{margin-right:5px;font-size:14px}
+  .cat.active{transform:translateY(-2px) scale(1.05)}
+  .tablewrap{overflow:auto;max-height:72vh}
+  th{z-index:2}
+  td.name,th.name{position:sticky;left:0;background:var(--card)}
+  th.name{z-index:4;background:var(--card2)}
+  tbody tr:nth-child(even) td.name{background:#fafcfb}
+  tbody tr:hover td{background:#f0fbf4}
+  tbody tr:hover td.name{background:#eaf9f0}
+  tbody td{transition:background .12s}
+  /* ===== P3 · Insights ===== */
+  .ai-summary{background:linear-gradient(135deg,#dcfce7,#f0fdf4);border:1px solid #bbf7d0;border-radius:16px;padding:15px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .ai-summary h3{font-size:13px;font-weight:800;color:var(--green-d);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .ai-summary ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+  .ai-summary li{font-size:13px;color:var(--txt);padding-left:18px;position:relative;line-height:1.4}
+  .ai-summary li::before{content:"\203a";position:absolute;left:5px;color:var(--green);font-weight:800}
+  .insight-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .insight{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow)}
+  .insight .ic{font-size:18px}
+  .insight .iv{font-size:17px;font-weight:800;margin-top:4px;letter-spacing:-.3px}
+  .insight .il{font-size:10px;color:var(--mut);margin-top:2px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .insight .ix{font-size:11px;color:var(--mut);margin-top:3px}
+  .oprow,.alrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .oprow:last-child,.alrow:last-child{border-bottom:none}
+  .oprow .nm,.alrow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .savechip{background:var(--greenbg);color:var(--green-d);font-weight:800;font-size:12px;border-radius:7px;padding:2px 8px;white-space:nowrap}
+  @media(max-width:560px){.insight-cards{grid-template-columns:repeat(2,1fr)}}
+  /* ===== P7 · Dark mode + extras ===== */
+  body{transition:background .25s,color .25s}
+  body.dark{--bg:#0d1411;--card:#161f1b;--card2:#1b261f;--line:#283831;--txt:#e7f0ea;--mut:#8ba398;--green:#22c55e;--green-d:#4ade80;--greenbg:#14361f;--accent:#22c55e;--shadow:0 1px 2px rgba(0,0,0,.3),0 2px 8px rgba(0,0,0,.25)}
+  body.dark .ai-summary{background:linear-gradient(135deg,#14361f,#16211c)}
+  body.dark tbody tr:nth-child(even),body.dark tbody tr:nth-child(even) td.name{background:#18221d}
+  body.dark tbody tr:hover td,body.dark tbody tr:hover td.name{background:#1e2e26}
+  body.dark .savechip,body.dark .kpi .s{background:#14361f}
+  .icontop{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:6px 11px;font-size:14px;cursor:pointer;color:var(--txt);box-shadow:var(--shadow)}
+  .icontop:hover{border-color:var(--green)}
+  .btn-exp.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .skelrow{height:42px;background:linear-gradient(90deg,var(--card2) 25%,var(--line) 50%,var(--card2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px;margin:8px 12px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .ptienda{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .ptienda .pt{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:11px;font-weight:700;box-shadow:var(--shadow)}
+  .ptienda .pt b{color:var(--green-d)}
+  .iconbtn.fav.on{background:#fbbf24;border-color:#f59e0b;color:#fff}
 </style>
 </head>
 <body>
   <header>
     <div>
       <h1>🛒 DealBot <span class="tag">PA</span></h1>
-      <div class="sub" id="sub">Comparador de precios · 6 supermercados de Panamá</div>
+      <div class="sub" id="sub">Retail Price Intelligence Platform · Panamá</div>
     </div>
-    <div class="pill" id="updated">Cargando…</div>
+    <div class="sysbar">
+      <div class="sys on"><span class="dot"></span><div><div class="sl">Estado</div><div class="sv">Online</div></div></div>
+      <div class="sys"><span class="sl">Última actualización</span><span class="sv" id="sys-last">—</span></div>
+      <div class="sys"><span class="sl">Próxima</span><span class="sv" id="sys-next">—</span></div>
+      <button class="icontop" id="btn-dark" onclick="toggleDark()" title="Cambiar tema claro/oscuro">🌙</button>
+    </div>
   </header>
 
   <div class="kpis">
-    <div class="kpi"><div class="n" id="k-prod">–</div><div class="l">Productos (categoría)</div></div>
-    <div class="kpi"><div class="n" id="k-match">–</div><div class="l">Comparables</div></div>
-    <div class="kpi deal"><div class="n" id="k-deals">–</div><div class="l">Deals activos</div></div>
-    <div class="kpi"><div class="n" id="k-save">–</div><div class="l">Máx. ahorro</div></div>
+    <div class="kpi" title="Total de productos rastreados en esta categoría a través de las 7 tiendas."><div class="n" id="k-prod">–</div><div class="l">Productos monitoreados</div><div class="s" id="k-prod-s"></div></div>
+    <div class="kpi" title="Productos que aparecen en 2+ tiendas y se pueden comparar por código de barras (EAN)."><div class="n" id="k-match">–</div><div class="l">Comparables</div><div class="s" id="k-match-s"></div></div>
+    <div class="kpi deal" title="Productos con una diferencia de precio aprovechable o un descuento activo."><div class="n" id="k-deals">–</div><div class="l">Oportunidades activas</div><div class="s" id="k-deals-s"></div></div>
+    <div class="kpi" title="Mayor diferencia porcentual de precio encontrada para un mismo producto entre tiendas."><div class="n" id="k-save">–</div><div class="l">Máximo ahorro</div><div class="s" id="k-save-s"></div></div>
   </div>
 
   <div class="catbar" id="catbar" style="margin-bottom:12px"></div>
 
   <div class="filtros">
-    <input id="q" placeholder="🔎 Buscar por nombre o SKU…" oninput="render()" />
+    <input id="q" list="sug" autocomplete="off" placeholder="🔎 Buscar por nombre, marca o SKU…" oninput="render()" />
+    <datalist id="sug"></datalist>
     <select id="f-marca" onchange="render()"><option value="">Todas las marcas</option></select>
     <select id="f-ref" onchange="render()" style="display:none">
       <option value="">Toda referencia</option>
     </select>
+    <button class="btn-exp" id="btn-favs" onclick="toggleSoloFavs()" title="Ver solo favoritos">⭐ Favoritos</button>
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-v="comp" onclick="setView('comp')">🏪 Comparador retail</div>
+    <div class="tab active" data-v="comp" onclick="setView('comp')">🏪 Monitor de Precios</div>
     <div class="tab" data-v="deals" onclick="setView('deals')">📋 Catálogo retail</div>
     <div class="tab" data-v="may" onclick="setView('may')">🏭 Mayoristas</div>
-    <div class="tab" data-v="anal" onclick="setView('anal')">📊 Análisis</div>
+    <div class="tab" data-v="anal" onclick="setView('anal')">📊 Insights</div>
     <div class="acciones">
-      <button class="btn-upd" id="btn-upd" onclick="actualizar()">🔄 Actualizar precios</button>
+      <button class="btn-upd" id="btn-upd" onclick="actualizar()">▶ Ejecutar monitoreo</button>
+      <button class="btn-exp" onclick="abrirSim()">🧮 Simulador</button>
+      <button class="btn-exp" onclick="abrirMarcas()">⚖️ Marcas</button>
+      <button class="btn-exp" onclick="compartir()">🔗 Compartir</button>
       <button class="btn-exp" onclick="exportExcel()">📥 Excel</button>
       <button class="btn-exp" onclick="exportPDF()">📄 PDF</button>
     </div>
@@ -145,10 +214,10 @@
         <thead><tr>
           <th class="name">Producto</th><th>Marca</th>
           <th class="r">SuperXtra</th><th class="r">Super Rey</th><th class="r">Super99</th>
-          <th class="r">S.Carnes</th><th class="r">S.Barú</th>
+          <th class="r">S.Carnes</th><th class="r">S.Barú</th><th class="r">Machetazo</th>
           <th class="c">Más barato</th><th class="r">Ahorro</th>
         </tr></thead>
-        <tbody id="comp-rows"><tr><td colspan="9" class="empty">Cargando…</td></tr></tbody>
+        <tbody id="comp-rows"><tr><td colspan="10" class="empty">Cargando…</td></tr></tbody>
       </table>
     </div>
     <div class="nota">🏪 Comparación entre <b>tiendas retail</b> (precio por unidad). Los <b>mayoristas</b> (packs) están en su propia pestaña 🏭.</div>
@@ -179,6 +248,9 @@
   </div>
 
   <div class="view" id="view-anal">
+    <div class="ai-summary" id="ai-summary"></div>
+    <div class="insight-cards" id="insight-cards"></div>
+    <div class="ptienda" id="ptienda"></div>
     <div class="analwrap">
       <div class="panel">
         <h3>🏆 Ranking de tiendas</h3>
@@ -189,6 +261,18 @@
         <h3>📈 Índice de precios</h3>
         <div class="ph">Precio promedio de la categoría por día (la tendencia crece con cada actualización)</div>
         <canvas id="chart-infl" height="170"></canvas>
+      </div>
+    </div>
+    <div class="analwrap" style="margin-top:14px">
+      <div class="panel">
+        <h3>💡 Mejores oportunidades del día</h3>
+        <div class="ph">Mayor diferencia de precio para el mismo producto entre tiendas</div>
+        <div id="oportunidades"></div>
+      </div>
+      <div class="panel">
+        <h3>🔔 Alertas</h3>
+        <div class="ph">Productos con descuento detectado respecto a su precio de lista</div>
+        <div id="alertas"></div>
       </div>
     </div>
   </div>
@@ -214,8 +298,32 @@
     </div>
   </div>
 
+  <div class="overlay" id="ov-sim">
+    <div class="sheet">
+      <button class="x" onclick="cerrar('ov-sim')">✕</button>
+      <h2>🧮 Simulador de presupuesto</h2>
+      <div class="ph" style="font-size:11px;color:var(--mut);margin-bottom:10px">¿Cuánto rinde tu dinero en cada supermercado? (categoría actual, precio por unidad)</div>
+      <input id="sim-monto" type="number" min="1" placeholder="Tengo $…" value="50" oninput="simular()" style="width:100%;margin-bottom:10px" />
+      <div id="sim-res"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="ov-marcas">
+    <div class="sheet">
+      <button class="x" onclick="cerrar('ov-marcas')">✕</button>
+      <h2>⚖️ Comparador de marcas</h2>
+      <div class="ph" style="font-size:11px;color:var(--mut);margin-bottom:10px">Precio promedio, cobertura y dónde suele salir más barata cada marca</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <select id="mk-a" onchange="compararMarcas()" style="flex:1"></select>
+        <span style="font-weight:800;color:var(--mut)">vs</span>
+        <select id="mk-b" onchange="compararMarcas()" style="flex:1"></select>
+      </div>
+      <div id="mk-res"></div>
+    </div>
+  </div>
+
   <footer>
-    DealBot · datos en vivo desde Supabase · SuperXtra · Super Rey · Super99 · SuperCarnes · Super Barú · MsMega<br/>
+    DealBot · datos en vivo desde Supabase · SuperXtra · Super Rey · Super99 · SuperCarnes · Super Barú · El Machetazo · MsMega<br/>
     Emparejado por código de barras. Actualización manual mientras se itera.
   </footer>
 
@@ -229,14 +337,18 @@
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqa3BheHNwdGZtcGtndHltYnV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDc4NjksImV4cCI6MjA5NzgyMzg2OX0.7lzxj3AC3lo177Y8MjGN5wYs0p5p49gJkb22L2n9e0A";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   const money = v => v==null ? "—" : "$" + Number(v).toFixed(2);
-  const tiendaNombre = { superxtra:"SuperXtra", superrey:"Super Rey", msmega:"MsMega", super99:"Super99", supercarnes:"SuperCarnes", superbaru:"Super Barú" };
-  const chipClass = r => ({superxtra:'xtra',superrey:'rey',msmega:'msmega',super99:'super99',supercarnes:'supercarnes',superbaru:'superbaru'})[r] || 'super99';
-  const slugDe = n => ({'SuperXtra':'superxtra','Super Rey':'superrey','Super99':'super99','SuperCarnes':'supercarnes','Super Barú':'superbaru','MsMega':'msmega'})[n] || 'super99';
+  const tiendaNombre = { superxtra:"SuperXtra", superrey:"Super Rey", msmega:"MsMega", super99:"Super99", supercarnes:"SuperCarnes", superbaru:"Super Barú", machetazo:"El Machetazo" };
+  const chipClass = r => ({superxtra:'xtra',superrey:'rey',msmega:'msmega',super99:'super99',supercarnes:'supercarnes',superbaru:'superbaru',machetazo:'machetazo'})[r] || 'super99';
+  const slugDe = n => ({'SuperXtra':'superxtra','Super Rey':'superrey','Super99':'super99','SuperCarnes':'supercarnes','Super Barú':'superbaru','MsMega':'msmega','El Machetazo':'machetazo'})[n] || 'super99';
+  const CAT_ICON = { atun:'🥫', vegetales_enlatados:'🥬', sardinas:'🐟', cafe:'☕', arroz:'🍚' };
+  const iconCat = slug => CAT_ICON[slug] || '🏷️';
 
   let CATS = [], catActual = null, compData = [], dealsData = [], TIPO = {}, vistaActual = 'comp';
   let rankData = [], inflData = [], canasta = new Map(), chartInfl = null, chartHist = null;
+  let favs = new Set(JSON.parse(localStorage.getItem('db_favs')||'[]'));
+  let soloFavs = false;
   const esMayorista = r => TIPO[r] === 'mayorista';
-  const COLORS = { superxtra:'#ea7a2b', superrey:'#db2777', super99:'#7c3aed', supercarnes:'#ca8a04', superbaru:'#15803d', msmega:'#0284c7' };
+  const COLORS = { superxtra:'#ea7a2b', superrey:'#db2777', super99:'#7c3aed', supercarnes:'#ca8a04', superbaru:'#15803d', msmega:'#0284c7', machetazo:'#dc2626' };
   const num = v => v==null||v==='' ? '' : Number(v);
 
   function setView(v){
@@ -244,7 +356,69 @@
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.v===v));
     document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
     document.getElementById('view-'+v).classList.add('active');
-    if(v==='anal') renderAnalisis();
+    if(v==='anal'){ renderAnalisis(); renderInsights(); }
+  }
+
+  // ===== Insights automáticos (resumen por reglas, sin IA externa) =====
+  function renderInsights(){
+    const catN = catActual ? catActual.nombre : '';
+    const conAhorro = compData.filter(d=>Number(d.ahorro_pct)>0);
+    const rk = [...rankData].sort((a,b)=>Number(a.indice_precio)-Number(b.indice_precio));
+    const masBarato = rk[0], masCaro = rk[rk.length-1];
+    const best = [...conAhorro].sort((a,b)=>Number(b.ahorro_pct)-Number(a.ahorro_pct))[0];
+    const avg = conAhorro.length ? conAhorro.reduce((s,d)=>s+Number(d.ahorro_abs||0),0)/conAhorro.length : 0;
+    const deals = dealsData.filter(d=>!esMayorista(d.retailer));
+    const nDeals = deals.filter(d=>d.es_deal).length;
+    const tn = r => tiendaNombre[r]||r;
+
+    // marca con mayor ahorro promedio
+    const porMarca = {};
+    conAhorro.forEach(d=>{ const m=d.marca||'—'; (porMarca[m] ??= []).push(Number(d.ahorro_pct)); });
+    let marcaTop=null, marcaTopV=0;
+    Object.entries(porMarca).forEach(([m,a])=>{ const x=a.reduce((s,v)=>s+v,0)/a.length; if(a.length>=2 && x>marcaTopV){marcaTopV=x;marcaTop=m;} });
+
+    // resumen del día
+    const li = [
+      `Hoy se comparan <b>${compData.length}</b> productos de <b>${catN}</b> entre 7 supermercados.`,
+      masBarato ? `<b>${tn(masBarato.retailer)}</b> lidera en precios bajos (gana ${masBarato.veces_mas_barata}/${masBarato.productos} comparaciones).` : '',
+      best ? `El mayor ahorro encontrado es <b>${Number(best.ahorro_pct).toFixed(0)}%</b> (${money(best.ahorro_abs)}) en ${best.nombre}.` : '',
+      conAhorro.length ? `La oportunidad promedio es de <b>${money(avg)}</b> por producto; hay <b>${nDeals}</b> con descuento activo.` : `Aún no hay diferencias de precio comparables en ${catN}.`,
+      marcaTop ? `La marca con mayor margen de ahorro es <b>${marcaTop}</b> (${marcaTopV.toFixed(0)}% promedio).` : ''
+    ].filter(Boolean);
+    document.getElementById('ai-summary').innerHTML =
+      `<h3>🧠 Resumen del día · ${catN}</h3><ul>${li.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+
+    // insight cards
+    const cards = [
+      { ic:'🥇', iv: masBarato?tn(masBarato.retailer):'—', il:'Más barato', ix: masBarato?`gana ${masBarato.veces_mas_barata}/${masBarato.productos}`:'' },
+      { ic:'💸', iv: masCaro&&masCaro!==masBarato?tn(masCaro.retailer):'—', il:'Más caro', ix: masCaro?`+${((Number(masCaro.indice_precio)-1)*100).toFixed(0)}% vs mín`:'' },
+      { ic:'🔥', iv: best?`−${Number(best.ahorro_pct).toFixed(0)}%`:'—', il:'Mejor oportunidad', ix: best?money(best.ahorro_abs)+' de diferencia':'' },
+      { ic:'📊', iv: avg>0?money(avg):'—', il:'Ahorro promedio', ix: `${conAhorro.length} productos comparables` }
+    ];
+    document.getElementById('insight-cards').innerHTML = cards.map(c=>
+      `<div class="insight"><div class="ic">${c.ic}</div><div class="iv">${c.iv}</div><div class="il">${c.il}</div><div class="ix">${c.ix}</div></div>`).join('');
+
+    // productos comparados por tienda (#27)
+    const cob = TIENDAS_CAMPO.map(([ret,campo])=>({ ret, n: compData.filter(d=>Number(d[campo])>0).length }))
+      .filter(t=>t.n>0).sort((a,b)=>b.n-a.n);
+    document.getElementById('ptienda').innerHTML = '<span class="pt" style="background:transparent;border:none;box-shadow:none;color:var(--mut)">Cobertura por tienda:</span>' +
+      cob.map(t=>`<span class="pt">${tn(t.ret)} <b>${t.n}</b></span>`).join('');
+
+    // mejores oportunidades del día (top 6 por ahorro)
+    const ops = [...conAhorro].sort((a,b)=>Number(b.ahorro_pct)-Number(a.ahorro_pct)).slice(0,6);
+    document.getElementById('oportunidades').innerHTML = ops.length ? ops.map(d=>
+      `<div class="oprow"><span class="nm" title="${(d.nombre||'').replace(/"/g,'&quot;')}">${d.nombre}</span>
+        <span class="chip ${chipClass(slugDe(d.tienda_mas_barata))}" style="margin:0 6px">${d.tienda_mas_barata}</span>
+        <span class="savechip">−${Number(d.ahorro_pct).toFixed(0)}% · ${money(d.ahorro_abs)}</span></div>`).join('')
+      : '<div class="empty">Sin oportunidades comparables aún.</div>';
+
+    // alertas: deals con descuento
+    const al = [...deals].filter(d=>d.es_deal).sort((a,b)=>Number(b.desc_retailer_pct)-Number(a.desc_retailer_pct)).slice(0,6);
+    document.getElementById('alertas').innerHTML = al.length ? al.map(d=>
+      `<div class="alrow"><span class="nm" title="${(d.nombre||'').replace(/"/g,'&quot;')}">🔥 ${d.nombre}</span>
+        <span class="chip ${chipClass(d.retailer)}" style="margin:0 6px">${tn(d.retailer)}</span>
+        <span class="savechip">−${Number(d.desc_retailer_pct).toFixed(0)}%</span></div>`).join('')
+      : '<div class="empty">Sin descuentos activos en esta categoría. Las alertas de subida/bajada aparecerán cuando haya varios días de historia.</div>';
   }
 
   // ===== Análisis: ranking + índice de precios =====
@@ -276,11 +450,9 @@
     chartInfl = new Chart(ctx, {
       type:'line',
       data:{ labels, datasets:[{ label:'Precio promedio', data:vals, borderColor:'#15a34a', backgroundColor:'rgba(21,163,74,.12)', fill:true, tension:.3, pointRadius:4 }] },
-      options:{ plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>'$'+v } } } }
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'$'+Number(c.parsed.y).toFixed(2)}}},
+        scales:{ y:{ ticks:{ callback:v=>'$'+Number(v).toFixed(2) } } } }
     });
-    if(inflData.length<2){
-      const d=ctx.getContext('2d'); // nota visual si hay 1 solo punto
-    }
   }
 
   // ===== Histórico por producto =====
@@ -288,24 +460,27 @@
     const dd = compData.find(x=>x.ean===ean) || dealsData.find(x=>x.ean===ean) || {};
     const nombre = dd.nombre || ('SKU '+ean);
     document.getElementById('hist-titulo').textContent = '📈 '+nombre;
-    document.getElementById('hist-sub').textContent = 'Evolución de precio por tienda · SKU '+ean;
     abrir('ov-hist');
     const { data } = await sb.from('dealbot_historico').select('*').eq('ean', ean).order('capturado_at');
     const rows = data || [];
-    // agrupar por retailer -> {x: fecha, y: precio}
+    const dias = new Set(rows.map(r=>(r.capturado_at||'').slice(0,10))).size;
+    document.getElementById('hist-sub').innerHTML = 'Evolución de precio por tienda · SKU '+ean +
+      (dias<=1 ? '<br><b style="color:var(--green-d)">📅 Por ahora solo hay datos de hoy — la tendencia (si sube o baja) aparecerá en unos días. Se guardan precios 2× al día.</b>' : '');
     const porT = {};
     rows.forEach(r=>{ (porT[r.retailer] ??= []).push({ x:new Date(r.capturado_at).getTime(), y:Number(r.price) }); });
     const ds = Object.entries(porT).map(([ret,pts])=>({
-      label: tiendaNombre[ret]||ret, data: pts.sort((a,b)=>a.x-b.x),
-      borderColor: COLORS[ret]||'#888', backgroundColor:'transparent', tension:.25, pointRadius:3, spanGaps:true
+      label: (tiendaNombre[ret]||ret) + (esMayorista(ret)?' · mayorista (pack)':''),
+      data: pts.sort((a,b)=>a.x-b.x),
+      borderColor: COLORS[ret]||'#888', backgroundColor:'transparent', tension:.25, pointRadius:3, spanGaps:true,
+      borderDash: esMayorista(ret)?[6,4]:[]
     }));
     if(chartHist) chartHist.destroy();
     chartHist = new Chart(document.getElementById('chart-hist'), {
       type:'line',
       data:{ datasets: ds },
-      options:{ parsing:false, plugins:{legend:{position:'bottom'}},
+      options:{ parsing:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.label+': $'+Number(c.parsed.y).toFixed(2)}}},
         scales:{ x:{ type:'linear', ticks:{ maxTicksLimit:6, callback:function(v){ return new Date(v).toLocaleString('es-PA',{day:'2-digit',month:'short',hour:'2-digit'}); } } },
-                 y:{ ticks:{ callback:v=>'$'+v } } } }
+                 y:{ ticks:{ callback:v=>'$'+Number(v).toFixed(2) } } } }
     });
   }
 
@@ -319,7 +494,7 @@
   }
   function abrirCanasta(){
     abrir('ov-canasta');
-    const tiendas = [['superxtra','precio_xtra'],['superrey','precio_rey'],['super99','precio_99'],['supercarnes','precio_carnes'],['superbaru','precio_baru']];
+    const tiendas = [['superxtra','precio_xtra'],['superrey','precio_rey'],['super99','precio_99'],['supercarnes','precio_carnes'],['superbaru','precio_baru'],['machetazo','precio_mach']];
     const items = [...canasta.values()];
     document.getElementById('canasta-items').innerHTML = items.length ? items.map(d=>
       `<div class="cline"><span>${d.nombre}</span><button class="iconbtn" onclick="toggleCanasta('${d.ean}');abrirCanasta()">✕</button></div>`).join("") : '<div class="empty">Canasta vacía.</div>';
@@ -331,10 +506,102 @@
     }).filter(t=>t.n>0).sort((a,b)=>a.suma-b.suma);
     const completos = tot.filter(t=>t.n===items.length);
     const minComp = completos.length ? Math.min(...completos.map(t=>t.suma)) : null;
-    document.getElementById('canasta-totales').innerHTML = items.length ? tot.map(t=>
+    // resumen inteligente: dónde comprar todo + cuánto ahorras
+    const compl = [...completos].sort((a,b)=>a.suma-b.suma);
+    const ganador = compl[0], peor = compl[compl.length-1];
+    const ahorro = (ganador && peor && peor!==ganador) ? peor.suma-ganador.suma : 0;
+    const resumen = ganador ? `<div class="row2 win" style="flex-direction:column;align-items:flex-start;gap:3px;margin-bottom:10px">
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;opacity:.85">🛒 Comprá todo junto en</span>
+        <span style="font-size:17px">${tiendaNombre[ganador.ret]||ganador.ret} · $${ganador.suma.toFixed(2)}</span>
+        ${ahorro>0?`<span style="font-size:12px;font-weight:700">Ahorrás $${ahorro.toFixed(2)} vs la opción más cara</span>`:''}
+      </div>` : '';
+    document.getElementById('canasta-totales').innerHTML = items.length ? resumen + tot.map(t=>
       `<div class="row2 ${t.suma===minComp&&t.n===items.length?'win':''}">
          <span>${tiendaNombre[t.ret]||t.ret} ${t.n<items.length?`<span style="color:var(--mut);font-weight:500">(${t.n}/${items.length})</span>`:''}</span>
          <span>$${t.suma.toFixed(2)}</span></div>`).join("") : '';
+  }
+
+  // ===== Simulador de presupuesto (P5) =====
+  const TIENDAS_CAMPO = [['superxtra','precio_xtra'],['superrey','precio_rey'],['super99','precio_99'],['supercarnes','precio_carnes'],['superbaru','precio_baru'],['machetazo','precio_mach']];
+  function abrirSim(){ abrir('ov-sim'); simular(); }
+  function simular(){
+    const monto = Number(document.getElementById('sim-monto').value)||0;
+    const res = TIENDAS_CAMPO.map(([ret,campo])=>{
+      const precios = compData.map(d=>Number(d[campo])).filter(p=>p>0).sort((a,b)=>a-b);
+      let suma=0,n=0;
+      for(const p of precios){ if(suma+p<=monto){ suma+=p; n++; } }
+      return { ret, n, suma };
+    }).filter(t=>t.n>0).sort((a,b)=>b.n-a.n || a.suma-b.suma);
+    const maxN = res.length ? res[0].n : 0;
+    document.getElementById('sim-res').innerHTML = res.length ? res.map((t,i)=>
+      `<div class="row2 ${i===0?'win':''}" style="margin-bottom:6px">
+         <span>${i===0?'🏆 ':''}${tiendaNombre[t.ret]||t.ret}</span>
+         <span><b>${t.n}</b> productos · $${t.suma.toFixed(2)}</span></div>`).join("")
+      + `<div class="ph" style="font-size:11px;color:var(--mut);margin-top:8px">Con $${monto} maximizás tu compra en <b>${tiendaNombre[res[0].ret]||res[0].ret}</b> (${maxN} productos distintos de ${catActual?catActual.nombre:''}).</div>`
+      : '<div class="empty">Ingresá un monto para simular.</div>';
+  }
+
+  // ===== Comparador de marcas (P5) =====
+  function statsMarca(m){
+    const items = dealsData.filter(d=>!esMayorista(d.retailer) && d.marca===m);
+    const precios = items.map(d=>Number(d.price)).filter(p=>p>0);
+    const avg = precios.length ? precios.reduce((s,p)=>s+p,0)/precios.length : 0;
+    const min = precios.length ? Math.min(...precios) : 0;
+    const porT={}; items.forEach(d=>{ const p=Number(d.price); if(p>0)(porT[d.retailer] ??= []).push(p); });
+    let bestT=null,bestV=1e9; Object.entries(porT).forEach(([t,a])=>{ const x=a.reduce((s,p)=>s+p,0)/a.length; if(x<bestV){bestV=x;bestT=t;} });
+    return { n:items.length, avg, min, bestT };
+  }
+  function abrirMarcas(){
+    const marcas=[...new Set(dealsData.filter(d=>!esMayorista(d.retailer)).map(d=>d.marca).filter(Boolean))].sort();
+    const opts=marcas.map(m=>`<option>${m.replace(/</g,'')}</option>`).join('');
+    document.getElementById('mk-a').innerHTML=opts;
+    document.getElementById('mk-b').innerHTML=opts;
+    if(marcas.length>1) document.getElementById('mk-b').selectedIndex=1;
+    abrir('ov-marcas'); compararMarcas();
+  }
+  function compararMarcas(){
+    const a=document.getElementById('mk-a').value, b=document.getElementById('mk-b').value;
+    if(!a){ document.getElementById('mk-res').innerHTML='<div class="empty">No hay marcas en esta categoría.</div>'; return; }
+    const sa=statsMarca(a), sb=statsMarca(b);
+    const winA = sa.avg>0 && (sb.avg===0 || sa.avg<=sb.avg);
+    const card = (m,s,win)=>`<div class="panel" style="padding:13px;${win?'border-color:var(--green);background:var(--greenbg)':''}">
+        <div style="font-size:15px;font-weight:800">${win?'🏆 ':''}${m}</div>
+        <div style="font-size:22px;font-weight:800;margin:6px 0;letter-spacing:-.5px">${s.avg>0?money(s.avg):'—'}<span style="font-size:11px;color:var(--mut);font-weight:600"> promedio</span></div>
+        <div style="font-size:12px;color:var(--mut)">${s.n} productos · desde ${s.min>0?money(s.min):'—'}</div>
+        <div style="font-size:12px;color:var(--mut);margin-top:3px">más barata en <b>${s.bestT?(tiendaNombre[s.bestT]||s.bestT):'—'}</b></div>
+      </div>`;
+    document.getElementById('mk-res').innerHTML =
+      `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${card(a,sa,winA)}${b&&b!==a?card(b,sb,!winA):''}</div>`;
+  }
+  // ===== Favoritos / Compartir / Dark mode (P7) =====
+  function toggleFav(ean){
+    if(favs.has(ean)) favs.delete(ean); else favs.add(ean);
+    localStorage.setItem('db_favs', JSON.stringify([...favs]));
+    render();
+  }
+  function toggleSoloFavs(){
+    soloFavs = !soloFavs;
+    document.getElementById('btn-favs').classList.toggle('on', soloFavs);
+    render();
+  }
+  function compartir(){
+    const u = new URL(location.href);
+    u.searchParams.set('cat', catActual ? catActual.slug : '');
+    const q = document.getElementById('q').value.trim();
+    if(q) u.searchParams.set('q', q); else u.searchParams.delete('q');
+    const link = u.toString();
+    const done = ()=>{ const b=event&&event.target; if(b){ const o=b.textContent; b.textContent='✅ Copiado'; setTimeout(()=>b.textContent=o,1800);} };
+    if(navigator.clipboard){ navigator.clipboard.writeText(link).then(done).catch(()=>prompt('Copiá el enlace:', link)); }
+    else prompt('Copiá el enlace:', link);
+  }
+  function toggleDark(){
+    const on = document.body.classList.toggle('dark');
+    localStorage.setItem('db_dark', on?'1':'0');
+    document.getElementById('btn-dark').textContent = on ? '☀️' : '🌙';
+    if(vistaActual==='anal'){ renderAnalisis(); renderInsights(); }
+  }
+  function initDark(){
+    if(localStorage.getItem('db_dark')==='1'){ document.body.classList.add('dark'); document.getElementById('btn-dark').textContent='☀️'; }
   }
   function abrir(id){ document.getElementById(id).classList.add('open'); }
   function cerrar(id){ document.getElementById(id).classList.remove('open'); }
@@ -344,8 +611,8 @@
   const SCAN_URL = "https://xjkpaxsptfmpkgtymbuu.supabase.co/functions/v1/dealbot-scan";
   async function actualizar(){
     const b = document.getElementById('btn-upd');
-    const orig = '🔄 Actualizar precios';
-    b.disabled = true; b.textContent = '⏳ Actualizando… (~10s)';
+    const orig = '▶ Ejecutar monitoreo';
+    b.disabled = true; b.textContent = '⏳ Ejecutando monitoreo… (~15s)';
     try{
       const r = await fetch(SCAN_URL, { method:'POST' });
       const j = await r.json();
@@ -368,8 +635,8 @@
     const cat = catActual ? catActual.nombre : '';
     if(vistaActual==='comp'){
       return { titulo:`Comparador retail - ${cat}`,
-        headers:['Producto','Marca','SKU','SuperXtra','Super Rey','Super99','SuperCarnes','Super Baru','Mas barato','Ahorro %'],
-        rows: comp.map(d=>[d.nombre, d.marca||'', d.ean||'', num(d.precio_xtra), num(d.precio_rey), num(d.precio_99), num(d.precio_carnes), num(d.precio_baru), d.tienda_mas_barata||'', num(d.ahorro_pct)]) };
+        headers:['Producto','Marca','SKU','SuperXtra','Super Rey','Super99','SuperCarnes','Super Baru','El Machetazo','Mas barato','Ahorro %'],
+        rows: comp.map(d=>[d.nombre, d.marca||'', d.ean||'', num(d.precio_xtra), num(d.precio_rey), num(d.precio_99), num(d.precio_carnes), num(d.precio_baru), num(d.precio_mach), d.tienda_mas_barata||'', num(d.ahorro_pct)]) };
     } else if(vistaActual==='deals'){
       return { titulo:`Catalogo retail - ${cat}`,
         headers:['Producto','Marca','Tienda','SKU','Precio','Lista','Desc %'],
@@ -407,21 +674,29 @@
   }
 
   async function init(){
+    initDark();
     const { data: tiendas } = await sb.from("dealbot_tiendas").select("retailer,tipo");
     TIPO = Object.fromEntries((tiendas||[]).map(t=>[t.retailer,t.tipo]));
     const { data } = await sb.from("dealbot_categorias").select("slug,nombre,tiene_referencia,activo").eq("activo",true).order("orden");
     CATS = data || [];
     document.getElementById("catbar").innerHTML = CATS.map(c=>
-      `<div class="cat" data-c="${c.slug}" onclick="selCat('${c.slug}')">${c.nombre}</div>`).join("");
-    if(CATS.length) selCat(CATS[0].slug);
+      `<div class="cat" data-c="${c.slug}" onclick="selCat('${c.slug}')"><span class="ci">${iconCat(c.slug)}</span>${c.nombre}</div>`).join("");
+    const params = new URLSearchParams(location.search);
+    const catIni = CATS.find(c=>c.slug===params.get('cat')) || CATS[0];
+    if(catIni){
+      await selCat(catIni.slug);
+      const q = params.get('q');
+      if(q){ document.getElementById('q').value = q; render(); }
+    }
   }
 
   async function selCat(slug){
     catActual = CATS.find(c=>c.slug===slug);
     document.querySelectorAll('.cat').forEach(el=>el.classList.toggle('active', el.dataset.c===slug));
+    // skeleton loading mientras carga (#21)
+    ['comp-rows','deals-rows','may-rows'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<tr><td colspan="10" style="border:none"><div class="skelrow"></div><div class="skelrow"></div><div class="skelrow"></div><div class="skelrow"></div></td></tr>'; });
     document.getElementById("f-ref").style.display = catActual.tiene_referencia ? "" : "none";
     document.getElementById("q").value = ""; document.getElementById("f-marca").value=""; document.getElementById("f-ref").value="";
-    document.getElementById("sub").textContent = catActual.nombre + " · 6 supermercados de Panamá";
 
     const [comp, deals, rank, infl] = await Promise.all([
       sb.from("dealbot_comparador").select("*").eq("categoria",slug).order("ahorro_pct",{ascending:false}),
@@ -441,9 +716,36 @@
     const refs = [...new Set(dealsData.map(d=>d.referencia).filter(Boolean))].sort();
     document.getElementById("f-ref").innerHTML = '<option value="">Toda referencia</option>' + refs.map(r=>`<option value="${r}">${refLabel[r]||r}</option>`).join("");
 
-    const lastTs = dealsData.map(d=>d.capturado_at).filter(Boolean).sort().pop();
-    document.getElementById("updated").textContent = lastTs ? "Actualizado "+new Date(lastTs).toLocaleString("es-PA") : "Sin datos";
+    // autocompletar (nombres + marcas + SKU)
+    const sug = new Set();
+    dealsData.forEach(d=>{ if(d.nombre) sug.add(d.nombre); if(d.marca) sug.add(d.marca); if(d.ean) sug.add(d.ean); });
+    document.getElementById("sug").innerHTML = [...sug].slice(0,400).map(s=>`<option value="${(s+'').replace(/"/g,'&quot;')}">`).join("");
+
+    ultimaTs = dealsData.map(d=>d.capturado_at).filter(Boolean).sort().pop();
+    actualizarSysbar();
     render();
+  }
+
+  // ===== Barra de estado del sistema (hero) =====
+  let ultimaTs = null;
+  function haceCuanto(ts){
+    const min = Math.round((Date.now()-new Date(ts).getTime())/60000);
+    if(min<1) return "recién";
+    if(min<60) return "hace "+min+" min";
+    const h = Math.round(min/60);
+    if(h<24) return "hace "+h+"h";
+    return "hace "+Math.round(h/24)+"d";
+  }
+  function actualizarSysbar(){
+    const last = document.getElementById("sys-last");
+    const next = document.getElementById("sys-next");
+    last.textContent = ultimaTs ? new Date(ultimaTs).toLocaleTimeString("es-PA",{hour:'2-digit',minute:'2-digit'}) : "Sin datos";
+    // monitoreo automático 2×/día (08:00 y 20:00)
+    const now = new Date();
+    let prox = null;
+    for(const h of [8,20]){ const t = new Date(now); t.setHours(h,0,0,0); if(t>now){ prox=t; break; } }
+    if(!prox){ prox = new Date(now); prox.setDate(prox.getDate()+1); prox.setHours(8,0,0,0); }
+    next.textContent = prox.toLocaleTimeString("es-PA",{hour:'2-digit',minute:'2-digit'});
   }
 
   function aplicaFiltros(arr){
@@ -451,7 +753,8 @@
     const marca = document.getElementById("f-marca").value;
     const ref = catActual.tiene_referencia ? document.getElementById("f-ref").value : "";
     return arr.filter(d=>{
-      if(q && !((d.nombre||"").toLowerCase().includes(q) || (d.ean||"").includes(q))) return false;
+      if(soloFavs && !favs.has(d.ean)) return false;
+      if(q && !((d.nombre||"").toLowerCase().includes(q) || (d.ean||"").includes(q) || (d.marca||"").toLowerCase().includes(q))) return false;
       if(marca && d.marca!==marca) return false;
       if(ref && d.referencia!==ref) return false;
       return true;
@@ -465,10 +768,17 @@
     const dealsMay = dealsAll.filter(d=>esMayorista(d.retailer)); // mayoristas
 
     document.getElementById("k-prod").textContent = dealsAll.length;
+    document.getElementById("k-prod-s").textContent = (catActual?catActual.nombre:"") + " · 7 tiendas";
     document.getElementById("k-match").textContent = comp.length;
+    const pctMatch = dealsAll.length ? Math.round(comp.length/dealsAll.length*100) : 0;
+    document.getElementById("k-match-s").textContent = comp.length ? pctMatch+"% emparejados por EAN" : "";
     document.getElementById("k-deals").textContent = deals.filter(d=>d.es_deal).length;
-    const maxSave = comp.reduce((m,d)=>Math.max(m, Number(d.ahorro_pct)||0),0);
+    document.getElementById("k-deals-s").textContent = ultimaTs ? "actualizado "+haceCuanto(ultimaTs) : "";
+    const conAhorro = comp.filter(d=>Number(d.ahorro_pct)>0);
+    const maxSave = conAhorro.reduce((m,d)=>Math.max(m, Number(d.ahorro_pct)||0),0);
     document.getElementById("k-save").textContent = maxSave>0 ? "−"+maxSave.toFixed(1)+"%" : "—";
+    const avgAbs = conAhorro.length ? conAhorro.reduce((s,d)=>s+(Number(d.ahorro_abs)||0),0)/conAhorro.length : 0;
+    document.getElementById("k-save-s").textContent = avgAbs>0 ? "$"+avgAbs.toFixed(2)+" promedio" : "";
 
     const esc = s => (s||"").replace(/"/g,"&quot;");
     const cell = (v,best,label,link,nat)=> v==null ? "—" : (
@@ -480,6 +790,7 @@
       return `<tr>
         <td class="name">
           <span class="rowacts">
+            <button class="iconbtn fav${favs.has(d.ean)?' on':''}" title="Marcar favorito" onclick="toggleFav('${d.ean}')">${favs.has(d.ean)?'★':'☆'}</button>
             <button class="iconbtn" title="Ver histórico de precio" onclick="verHistorico('${d.ean}')">📈</button>
             <button class="iconbtn cb-${d.ean}${canasta.has(d.ean)?' on':''}" title="Agregar a la canasta" onclick="toggleCanasta('${d.ean}')">🧺</button>
           </span>${d.nombre}${ref}${d.ean?`<span class="ean">SKU ${d.ean}</span>`:""}</td>
@@ -489,10 +800,11 @@
         <td class="r">${cell(d.precio_99,best,"Super99",d.link_99,d.nombre_99)}</td>
         <td class="r">${cell(d.precio_carnes,best,"SuperCarnes",d.link_carnes,d.nombre_carnes)}</td>
         <td class="r">${cell(d.precio_baru,best,"Super Barú",d.link_baru,d.nombre_baru)}</td>
+        <td class="r">${cell(d.precio_mach,best,"El Machetazo",d.link_mach,d.nombre_mach)}</td>
         <td class="c">${best?`<span class="chip ${chipClass(slugDe(best))}">${best}</span>`:'<span class="zero">—</span>'}</td>
         <td class="r ${Number(d.ahorro_pct)>0?'pos':'zero'}">${d.ahorro_pct==null?'<span class="zero" title="solo está en una tienda retail">1 retail</span>':(Number(d.ahorro_pct)>0?money(d.ahorro_abs)+" ("+Number(d.ahorro_pct).toFixed(0)+"%)":"=")}</td>
       </tr>`;
-    }).join("") : `<tr><td colspan="9" class="empty">${
+    }).join("") : `<tr><td colspan="10" class="empty">${
       deals.length
         ? `No hay productos retail para comparar con estos filtros — esta selección aparece en una sola tienda retail.<br/>Revisa la pestaña <b>📋 Catálogo retail</b> o <b>🏭 Mayoristas</b>.`
         : "Sin coincidencias con estos filtros."
