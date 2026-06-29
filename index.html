@@ -115,7 +115,8 @@
   .cstore .row2.win{background:var(--greenbg);border-color:var(--green);color:var(--green-d);font-weight:800}
   @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.analwrap{grid-template-columns:1fr}}
   /* ===== P2 · UX ===== */
-  .filtros input#q{flex:2;min-width:300px;padding:12px 15px;font-size:14px;font-weight:600;border-radius:12px}
+  .filtros input#q{flex:1.6;min-width:220px;padding:12px 15px;font-size:14px;font-weight:600;border-radius:12px}
+  .expgroup{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;padding-left:8px;border-left:1px solid var(--line)}
   .filtros input#q:focus{box-shadow:0 0 0 4px rgba(21,163,74,.12)}
   .cat{transition:transform .14s ease, background .14s, border-color .14s, color .14s}
   .cat .ci{margin-right:5px;font-size:14px}
@@ -194,6 +195,11 @@
       <option value="">Toda referencia</option>
     </select>
     <button class="btn-exp" id="btn-favs" onclick="toggleSoloFavs()" title="Ver solo favoritos">⭐ Favoritos</button>
+    <div class="expgroup">
+      <button class="btn-exp" onclick="compartir()">🔗 Compartir</button>
+      <button class="btn-exp" onclick="exportExcel()">📥 Excel</button>
+      <button class="btn-exp" onclick="exportPDF()">📄 PDF</button>
+    </div>
   </div>
 
   <div class="tabs">
@@ -203,13 +209,8 @@
     <div class="tab" data-v="anal" onclick="setView('anal')">📊 Insights</div>
     <div class="acciones">
       <button class="btn-upd" id="btn-upd" onclick="actualizar()">▶ Ejecutar monitoreo</button>
-      <span class="adiv"></span>
-      <button class="iconact" onclick="abrirSim()" title="Simulador de presupuesto">🧮</button>
-      <button class="iconact" onclick="abrirMarcas()" title="Comparador de marcas">⚖️</button>
-      <span class="adiv"></span>
-      <button class="iconact" onclick="compartir()" title="Compartir enlace de esta vista">🔗</button>
-      <button class="iconact" onclick="exportExcel()" title="Exportar a Excel">📥</button>
-      <button class="iconact" onclick="exportPDF()" title="Exportar a PDF">📄</button>
+      <button class="btn-exp" onclick="abrirSim()">🧮 Simulador</button>
+      <button class="btn-exp" onclick="abrirMarcas()">⚖️ Marcas</button>
     </div>
   </div>
 
@@ -595,7 +596,7 @@
     const q = document.getElementById('q').value.trim();
     if(q) u.searchParams.set('q', q); else u.searchParams.delete('q');
     const link = u.toString();
-    const done = ()=>{ const b=event&&event.target; if(b){ const o=b.textContent; b.textContent='✅'; b.title='¡Enlace copiado!'; setTimeout(()=>{b.textContent=o;b.title='Compartir enlace de esta vista';},1600);} };
+    const done = ()=>{ const b=event&&event.target; if(b){ const o=b.textContent; b.textContent='✅ Copiado'; setTimeout(()=>{b.textContent=o;},1600);} };
     if(navigator.clipboard){ navigator.clipboard.writeText(link).then(done).catch(()=>prompt('Copiá el enlace:', link)); }
     else prompt('Copiá el enlace:', link);
   }
