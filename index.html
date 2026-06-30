@@ -698,11 +698,13 @@
     const dias = new Set(rows.map(r=>(r.capturado_at||'').slice(0,10))).size;
     document.getElementById('hist-sub').innerHTML = 'Evolución de precio por tienda · SKU '+ean +
       (dias<=1 ? '<br><b style="color:var(--green-d)">📅 Por ahora solo hay datos de hoy — la tendencia (si sube o baja) aparecerá en unos días. Se guardan precios 2× al día.</b>' : '');
+    // agrupar por DÍA (hora Panamá): 1 punto por día = último precio registrado ese día
+    const diaKey = ts => new Date(ts).toLocaleDateString('en-CA',{timeZone:'America/Panama'});
     const porT = {};
-    rows.forEach(r=>{ (porT[r.retailer] ??= []).push({ x:new Date(r.capturado_at).getTime(), y:Number(r.price) }); });
-    const ds = Object.entries(porT).map(([ret,pts])=>({
+    rows.forEach(r=>{ const dia=diaKey(r.capturado_at); (porT[r.retailer] ??= {})[dia]=Number(r.price); });
+    const ds = Object.entries(porT).map(([ret,dias])=>({
       label: (tiendaNombre[ret]||ret) + (esMayorista(ret)?' · mayorista (pack)':''),
-      data: pts.sort((a,b)=>a.x-b.x),
+      data: Object.keys(dias).sort().map(dia=>({ x:new Date(dia+'T12:00:00Z').getTime(), y:dias[dia] })),
       borderColor: COLORS[ret]||'#888', backgroundColor:'transparent', tension:.25, pointRadius:3, spanGaps:true,
       borderDash: esMayorista(ret)?[6,4]:[]
     }));
@@ -710,8 +712,8 @@
     chartHist = new Chart(document.getElementById('chart-hist'), {
       type:'line',
       data:{ datasets: ds },
-      options:{ parsing:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{title:items=>items.length?new Date(items[0].parsed.x).toLocaleString('es-PA',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'',label:c=>c.dataset.label+': $'+Number(c.parsed.y).toFixed(2)}}},
-        scales:{ x:{ type:'linear', ticks:{ maxTicksLimit:6, callback:function(v){ return new Date(v).toLocaleString('es-PA',{day:'2-digit',month:'short',hour:'2-digit'}); } } },
+      options:{ parsing:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{title:items=>items.length?new Date(items[0].parsed.x).toLocaleDateString('es-PA',{day:'2-digit',month:'short',timeZone:'UTC'}):'',label:c=>c.dataset.label+': $'+Number(c.parsed.y).toFixed(2)}}},
+        scales:{ x:{ type:'linear', ticks:{ maxTicksLimit:8, callback:function(v){ return new Date(v).toLocaleDateString('es-PA',{day:'2-digit',month:'short',timeZone:'UTC'}); } } },
                  y:{ ticks:{ callback:v=>'$'+Number(v).toFixed(2) } } } }
     });
   }
