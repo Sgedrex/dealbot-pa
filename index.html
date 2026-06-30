@@ -523,9 +523,10 @@
     });
   }
   function animarKPIs(){
-    const total=dealsData.length, comp=compData.filter(esComparable).length;
+    const comparables = compData.filter(esComparable);
+    const total=dealsData.length, comp=comparables.length;
     const deals=dealsData.filter(d=>!esMayorista(d.retailer)&&d.es_deal).length;
-    const maxSave=compData.reduce((m,d)=>Math.max(m,Number(d.ahorro_pct)||0),0);
+    const maxSave=comparables.reduce((m,d)=>Math.max(m,Number(d.ahorro_pct)||0),0);
     animCount('k-prod', total, v=>String(Math.round(v)));
     animCount('k-match', comp, v=>String(Math.round(v)));
     animCount('k-deals', deals, v=>String(Math.round(v)));
