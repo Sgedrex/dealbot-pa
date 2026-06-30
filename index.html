@@ -200,6 +200,24 @@
   body.ejecutivo .tabs,body.ejecutivo .filtros,body.ejecutivo #view-comp,body.ejecutivo #view-deals,body.ejecutivo #view-may,body.ejecutivo .canasta-fab{display:none !important}
   body.ejecutivo #view-anal{display:block !important}
   body.ejecutivo .kpi{cursor:default}
+  /* ===== Chat IA ===== */
+  .chat-fab{position:fixed;left:18px;bottom:18px;background:var(--green);color:#fff;border:none;border-radius:999px;padding:13px 18px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(21,163,74,.4);z-index:45}
+  .chat-panel{position:fixed;left:18px;bottom:18px;width:370px;max-width:calc(100vw - 36px);height:540px;max-height:calc(100vh - 36px);background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:none;flex-direction:column;z-index:55;overflow:hidden}
+  .chat-panel.open{display:flex;animation:sheetin .25s cubic-bezier(.22,1,.36,1)}
+  .chat-head{background:linear-gradient(135deg,var(--green),var(--green-d));color:#fff;padding:12px 14px;font-weight:800;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+  .chat-head .x{background:rgba(255,255,255,.22);border:none;color:#fff;border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:15px}
+  .chat-body{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+  .msg{max-width:86%;padding:9px 12px;border-radius:13px;font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .msg.u{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px}
+  .msg.a{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg.a.load{color:var(--mut);font-style:italic}
+  .chat-sug{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px;background:var(--bg)}
+  .chat-sug button{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11px;cursor:pointer;color:var(--txt);text-align:left}
+  .chat-sug button:hover{border-color:var(--green);color:var(--green-d)}
+  .chat-foot{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);background:var(--card)}
+  .chat-foot input{flex:1;min-width:0;margin:0}
+  .chat-foot button{background:var(--green);color:#fff;border:none;border-radius:10px;padding:0 15px;font-weight:800;font-size:15px;cursor:pointer}
+  .chat-foot button:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
@@ -326,6 +344,17 @@
   </div>
 
   <button class="canasta-fab" id="canasta-fab" onclick="abrirCanasta()" style="display:none">🧺 Canasta (<span id="canasta-n">0</span>)</button>
+
+  <button class="chat-fab" id="chat-fab" onclick="chatToggle()">💬 Asistente</button>
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-head">🤖 Asistente DealBot <button class="x" onclick="chatToggle()">✕</button></div>
+    <div class="chat-body" id="chat-body"></div>
+    <div class="chat-sug" id="chat-sug"></div>
+    <div class="chat-foot">
+      <input id="chat-input" maxlength="300" placeholder="Preguntá por precios…" onkeydown="if(event.key==='Enter')chatEnviar()" />
+      <button id="chat-send" onclick="chatEnviar()">➤</button>
+    </div>
+  </div>
 
   <div class="overlay" id="ov-canasta">
     <div class="sheet">
@@ -1025,6 +1054,59 @@
         <td class="r">${money(d.price)}</td>
       </tr>`;
     }).join("") : `<tr><td colspan="4" class="empty">Sin productos mayoristas con estos filtros.</td></tr>`;
+  }
+
+  // ===== Chat IA (asistente sobre los precios) =====
+  const CHAT_URL = "https://xjkpaxsptfmpkgtymbuu.supabase.co/functions/v1/dealbot-chat";
+  let chatAbierto = false;
+  function chatToggle(){
+    chatAbierto = !chatAbierto;
+    document.getElementById('chat-panel').classList.toggle('open', chatAbierto);
+    document.getElementById('chat-fab').style.display = chatAbierto ? 'none' : '';
+    if(chatAbierto && !document.getElementById('chat-body').children.length){
+      chatMsg('a', '¡Hola! 👋 Soy el asistente de DealBot. Preguntame por precios de '+(catActual?catActual.nombre:'productos')+' en los supermercados de Panamá.');
+      chatSugerencias();
+      setTimeout(()=>document.getElementById('chat-input').focus(), 100);
+    }
+  }
+  function chatMsg(tipo, texto){
+    const b = document.getElementById('chat-body');
+    const d = document.createElement('div');
+    d.className = 'msg '+tipo + (texto==='…'?' load':'');
+    d.textContent = texto;
+    b.appendChild(d); b.scrollTop = b.scrollHeight;
+    return d;
+  }
+  function chatSugerencias(){
+    const cat = catActual ? catActual.nombre.toLowerCase() : 'café';
+    const sug = ['¿Dónde está más barato el '+cat+'?', '¿Qué supermercado conviene hoy?', 'Mostrame los mejores ahorros'];
+    document.getElementById('chat-sug').innerHTML = sug.map(s=>`<button onclick="chatEnviar(this.textContent)">${s}</button>`).join('');
+  }
+  async function chatEnviar(texto){
+    const input = document.getElementById('chat-input');
+    const q = (texto || input.value).trim();
+    if(!q) return;
+    input.value = '';
+    document.getElementById('chat-sug').innerHTML = '';
+    chatMsg('u', q);
+    const load = chatMsg('a', '…');
+    const btn = document.getElementById('chat-send'); btn.disabled = true;
+    try{
+      const r = await fetch(CHAT_URL, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'authorization':'Bearer '+SUPABASE_ANON, 'apikey':SUPABASE_ANON },
+        body: JSON.stringify({ pregunta: q, categoria: catActual ? catActual.slug : 'atun' })
+      });
+      const j = await r.json();
+      load.classList.remove('load');
+      load.textContent = j.texto || 'No tengo una respuesta para eso.';
+    }catch(e){
+      load.classList.remove('load');
+      load.textContent = 'No pude conectar con el asistente. Reintentá en un momento.';
+    }finally{
+      btn.disabled = false;
+      document.getElementById('chat-input').focus();
+    }
   }
 
   init();
