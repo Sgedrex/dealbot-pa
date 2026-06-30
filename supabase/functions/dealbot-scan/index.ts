@@ -40,13 +40,30 @@ async function fetchMachetazo(term: string) {
   return mapVtex(await res.json(), "machetazo", "www.elmachetazo.com");
 }
 
+// gramos extraidos del nombre (para convertir precio por kg -> precio del paquete)
+function gramosDe(n: string): number | null {
+  if (!n) return null; const s = ("" + n).toLowerCase(); let m;
+  if ((m = s.match(/(\d+(?:[.,]\d+)?)\s*kg/))) return parseFloat(m[1].replace(",", ".")) * 1000;
+  if ((m = s.match(/(\d+(?:[.,]\d+)?)\s*gr?s?\b/))) return parseFloat(m[1].replace(",", "."));
+  return null;
+}
 async function fetchRey(term: string) {
-  const body = [{ operationName: "SearchProducts", variables: { searchProductsInput: { clientId: "GRUPO_REY", storeReference: "1038", currentPage: 1, pageSize: 50, search: { query: term } } }, query: "query SearchProducts($searchProductsInput: SearchProductsInput!) { searchProducts(searchProductsInput: $searchProductsInput) { products { sku name price stock isAvailable } } }" }];
+  const body = [{ operationName: "SearchProducts", variables: { searchProductsInput: { clientId: "GRUPO_REY", storeReference: "1038", currentPage: 1, pageSize: 50, search: { query: term } } }, query: "query SearchProducts($searchProductsInput: SearchProductsInput!) { searchProducts(searchProductsInput: $searchProductsInput) { products { sku name price stock isAvailable unit } } }" }];
   const res = await fetch(REY_ENDPOINT, { method: "POST", headers: REY_HEADERS, body: JSON.stringify(body) });
   if (!res.ok) return [];
   const json = await res.json();
   const prods = json?.[0]?.data?.searchProducts?.products ?? json?.data?.searchProducts?.products ?? [];
-  return prods.map((p: any) => ({ retailer: "superrey", product_id: String(p.sku), ean: String(p.sku), nombre: p.name ?? "", marca: "", link: `https://www.smrey.com/search?name=${encodeURIComponent(p.name ?? "")}`, price: Number(p.price ?? 0), list_price: "", disponible: p.isAvailable !== false && Number(p.stock ?? 1) > 0 })).filter((x: any) => x.price > 0);
+  return prods.map((p: any) => {
+    let price = Number(p.price ?? 0);
+    let disp = p.isAvailable !== false && Number(p.stock ?? 1) > 0;
+    // unit "kg" => price es POR KILO. Convertir al precio del paquete con el peso del nombre; si es granel sin peso, desactivar.
+    if (p.unit && /kg/i.test(String(p.unit))) {
+      const g = gramosDe(p.name ?? "");
+      if (g) price = Math.round(price * g / 1000 * 100) / 100;
+      else disp = false;
+    }
+    return { retailer: "superrey", product_id: String(p.sku), ean: String(p.sku), nombre: p.name ?? "", marca: "", link: `https://www.smrey.com/search?name=${encodeURIComponent(p.name ?? "")}`, price, list_price: "", disponible: disp };
+  }).filter((x: any) => x.price > 0);
 }
 
 async function fetchMsMega(term: string) {
