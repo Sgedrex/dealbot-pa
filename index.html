@@ -34,7 +34,13 @@
   .kpi .s{font-size:10px;color:var(--green-d);margin-top:7px;font-weight:700;background:var(--greenbg);display:inline-block;padding:2px 7px;border-radius:6px}
   .kpi .s:empty{display:none}
   .filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
-  .catbar{display:flex;gap:7px;flex-wrap:wrap}
+  .catwrap{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+  .catbar{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;flex:1}
+  .catbar::-webkit-scrollbar{display:none}
+  .catbar .cat{flex:none;white-space:nowrap}
+  .catarr{display:flex;flex:none;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--card);border-radius:9px;width:32px;height:38px;font-size:20px;line-height:1;cursor:pointer;color:var(--mut);box-shadow:var(--shadow);padding:0}
+  .catarr:hover{border-color:var(--green);color:var(--green-d)}
+  @media(max-width:560px){.catarr{display:none !important}}
   .cat{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
   .cat:hover{border-color:#bbf7d0;color:var(--txt)}
   .cat.active{background:var(--green);color:#fff;border-color:var(--green)}
@@ -309,7 +315,11 @@
     <div class="kpi" onclick="setView('comp')" title="Mayor diferencia de precio entre tiendas. Clic para ver el comparador (ordenado por ahorro)."><div class="n" id="k-save">–</div><div class="l">Máximo ahorro</div><div class="s" id="k-save-s"></div></div>
   </div>
 
-  <div class="catbar" id="catbar" style="margin-bottom:12px"></div>
+  <div class="catwrap">
+    <button class="catarr" onclick="catScroll(-1)" title="Anterior">‹</button>
+    <div class="catbar" id="catbar"></div>
+    <button class="catarr" onclick="catScroll(1)" title="Siguiente">›</button>
+  </div>
 
   <div class="filtros">
     <input id="q" list="sug" autocomplete="off" placeholder="🔎 Buscar por nombre, marca o SKU…" oninput="render()" />
@@ -634,9 +644,9 @@
       </div>`;
     }).join("") : `<div class="empty">Sin datos suficientes para rankear.</div>`;
 
-    // Índice de precios — estado vacío inteligente si hay <3 puntos históricos
+    // Índice de precios — estado vacío inteligente si hay <2 puntos (con 2+ ya se dibuja la tendencia)
     const box = document.getElementById('infl-box');
-    if(inflData.length < 3){
+    if(inflData.length < 2){
       if(chartInfl){ chartInfl.destroy(); chartInfl=null; }
       const precios = dealsData.filter(d=>!esMayorista(d.retailer)).map(d=>Number(d.price)).filter(p=>p>0);
       const min = precios.length?Math.min(...precios):0, max = precios.length?Math.max(...precios):0;
@@ -951,14 +961,24 @@
     doc.save(nombreArchivo(titulo)+'.pdf');
   }
 
+  function pintarCats(){
+    document.getElementById("catbar").innerHTML = CATS.map(c=>
+      `<div class="cat" data-c="${c.slug}" onclick="selCat('${c.slug}')"><span class="ci">${iconCat(c.slug)}</span>${c.nombre}</div>`).join("");
+    catArrows();
+  }
+  function catScroll(dir){ const b=document.getElementById('catbar'); if(b) b.scrollBy({left:dir*220,behavior:'smooth'}); }
+  function catArrows(){
+    const b=document.getElementById('catbar'); if(!b) return;
+    const hay = b.scrollWidth > b.clientWidth + 4;
+    document.querySelectorAll('.catarr').forEach(a=>a.style.display = hay ? 'flex' : 'none');
+  }
   async function init(){
     initDark(); initDensidad();
     const { data: tiendas } = await sb.from("dealbot_tiendas").select("retailer,tipo");
     TIPO = Object.fromEntries((tiendas||[]).map(t=>[t.retailer,t.tipo]));
     const { data } = await sb.from("dealbot_categorias").select("slug,nombre,tiene_referencia,activo").eq("activo",true).order("orden");
     CATS = data || [];
-    document.getElementById("catbar").innerHTML = CATS.map(c=>
-      `<div class="cat" data-c="${c.slug}" onclick="selCat('${c.slug}')"><span class="ci">${iconCat(c.slug)}</span>${c.nombre}</div>`).join("");
+    pintarCats();
     const params = new URLSearchParams(location.search);
     const catIni = CATS.find(c=>c.slug===params.get('cat')) || CATS[0];
     if(catIni){
@@ -972,6 +992,7 @@
     catActual = CATS.find(c=>c.slug===slug);
     filtroGana = null;
     document.querySelectorAll('.cat').forEach(el=>el.classList.toggle('active', el.dataset.c===slug));
+    const _act=document.querySelector('.cat.active'); if(_act&&_act.scrollIntoView) _act.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
     // skeleton loading mientras carga (#21)
     ['comp-rows','deals-rows','may-rows'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<tr><td colspan="10" style="border:none"><div class="skelrow"></div><div class="skelrow"></div><div class="skelrow"></div><div class="skelrow"></div></td></tr>'; });
     document.getElementById("f-ref").style.display = catActual.tiene_referencia ? "" : "none";
@@ -1264,8 +1285,7 @@
     if(onbCfg && onbCfg.agregadas && onbCfg.agregadas.length){
       const { data } = await sb.from("dealbot_categorias").select("slug,nombre,tiene_referencia,activo").eq("activo",true).order("orden");
       CATS = data || [];
-      document.getElementById("catbar").innerHTML = CATS.map(c=>
-        `<div class="cat" data-c="${c.slug}" onclick="selCat('${c.slug}')"><span class="ci">${iconCat(c.slug)}</span>${c.nombre}</div>`).join("");
+      pintarCats();
     }
     if(onbCfg && onbCfg.categoria_principal && CATS.find(c=>c.slug===onbCfg.categoria_principal)) selCat(onbCfg.categoria_principal);
     else if(CATS.length) selCat(CATS[0].slug);
@@ -1283,6 +1303,7 @@
     }
   }
 
+  window.addEventListener('resize', catArrows);
   init().then(onbInit);
 </script>
 </body>
