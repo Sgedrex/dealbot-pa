@@ -196,6 +196,10 @@
   /* comparador VS: frase resumen */
   .vsfrase{background:var(--greenbg);color:var(--green-d);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;text-align:center;font-weight:600;line-height:1.4}
   .altipo{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--mut);margin-left:4px}
+  /* modo ejecutivo */
+  body.ejecutivo .tabs,body.ejecutivo .filtros,body.ejecutivo #view-comp,body.ejecutivo #view-deals,body.ejecutivo #view-may,body.ejecutivo .canasta-fab{display:none !important}
+  body.ejecutivo #view-anal{display:block !important}
+  body.ejecutivo .kpi{cursor:default}
 </style>
 </head>
 <body>
@@ -208,6 +212,7 @@
       <div class="sys on"><span class="dot"></span><div><div class="sl">Estado</div><div class="sv">Online</div></div></div>
       <div class="sys"><span class="sl">Última actualización</span><span class="sv" id="sys-last">—</span></div>
       <div class="sys"><span class="sl">Próxima</span><span class="sv" id="sys-next">—</span></div>
+      <button class="icontop" id="btn-exec" onclick="toggleEjecutivo()" title="Vista ejecutiva (resumen en 1 minuto)">📊</button>
       <button class="icontop" id="btn-dark" onclick="toggleDark()" title="Cambiar tema claro/oscuro">🌙</button>
     </div>
   </header>
@@ -290,6 +295,7 @@
   </div>
 
   <div class="view" id="view-anal">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn-exp" onclick="reportePDF()">📑 Descargar reporte ejecutivo (PDF)</button></div>
     <div class="ai-summary" id="ai-summary"></div>
     <div class="insight-cards" id="insight-cards"></div>
     <div class="ptienda" id="ptienda"></div>
@@ -732,6 +738,51 @@
   }
   function initDensidad(){
     if(localStorage.getItem('db_compact')==='1'){ document.body.classList.add('compact'); const b=document.getElementById('btn-dens'); if(b) b.textContent='↕ Cómodo'; }
+  }
+  // ===== Modo ejecutivo (#10) =====
+  function toggleEjecutivo(){
+    const on = document.body.classList.toggle('ejecutivo');
+    const b = document.getElementById('btn-exec');
+    b.textContent = on?'📋':'📊';
+    b.title = on?'Volver a vista operativa':'Vista ejecutiva (resumen en 1 minuto)';
+    if(on){ setView('anal'); window.scrollTo({top:0,behavior:'smooth'}); }
+  }
+  // ===== Reporte ejecutivo PDF (#20) =====
+  function reportePDF(){
+    renderAnalisis(); renderInsights();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm',format:'a4'});
+    const cat = catActual?catActual.nombre:'';
+    const W = 182; let y = 16;
+    doc.setFontSize(16); doc.setTextColor(21,163,74); doc.text('DealBot PA — Reporte Ejecutivo', 14, y);
+    y+=6; doc.setFontSize(9.5); doc.setTextColor(110);
+    doc.text('Categoria: '+cat+'   ·   '+new Date().toLocaleString('es-PA')+'   ·   Retail Price Intelligence', 14, y);
+    y+=9;
+    doc.setFontSize(12); doc.setTextColor(20); doc.text('Resumen del día', 14, y); y+=5;
+    doc.setFontSize(9); doc.setTextColor(60);
+    [...document.querySelectorAll('#ai-summary li')].forEach(li=>{
+      const lines = doc.splitTextToSize('•  '+li.textContent, W);
+      doc.text(lines, 14, y); y += lines.length*4.6;
+    });
+    y+=3;
+    const kpiData = [
+      ['Productos monitoreados', document.getElementById('k-prod').textContent],
+      ['Comparables', document.getElementById('k-match').textContent],
+      ['Oportunidades activas', document.getElementById('k-deals').textContent],
+      ['Máximo ahorro', document.getElementById('k-save').textContent] ];
+    doc.autoTable({ startY:y, head:[['Indicador','Valor']], body:kpiData, theme:'grid',
+      headStyles:{fillColor:[21,163,74],textColor:255}, styles:{fontSize:9}, margin:{left:14,right:14} });
+    y = doc.lastAutoTable.finalY+5;
+    const rank = [...document.querySelectorAll('#rank-list .rank')].map((r,i)=>[String(i+1), r.querySelector('b')?.textContent||'', r.querySelector('.meta')?.textContent||'']);
+    if(rank.length){ doc.autoTable({ startY:y, head:[['#','Tienda','Desempeño']], body:rank, theme:'striped',
+      headStyles:{fillColor:[21,163,74],textColor:255}, styles:{fontSize:8}, margin:{left:14,right:14} }); y = doc.lastAutoTable.finalY+5; }
+    const ops = [...document.querySelectorAll('#oportunidades .oprow')].map(o=>[o.querySelector('.nm')?.textContent||'', o.querySelector('.chip')?.textContent||'', o.querySelector('.savechip')?.textContent||'']);
+    if(ops.length){ doc.autoTable({ startY:y, head:[['Mejores oportunidades','Tienda','Ahorro']], body:ops, theme:'striped',
+      headStyles:{fillColor:[21,163,74],textColor:255}, styles:{fontSize:8}, margin:{left:14,right:14} }); y = doc.lastAutoTable.finalY+5; }
+    const al = [...document.querySelectorAll('#alertas .alrow')].map(a=>[a.querySelector('.nm')?.textContent||'', a.querySelector('.chip')?.textContent||'', a.querySelector('.savechip')?.textContent||'']);
+    if(al.length){ doc.autoTable({ startY:y, head:[['Alertas / descuentos','Tienda','Desc.']], body:al, theme:'striped',
+      headStyles:{fillColor:[21,163,74],textColor:255}, styles:{fontSize:8}, margin:{left:14,right:14} }); }
+    doc.save('DealBot_Reporte_'+nombreArchivo(cat)+'.pdf');
   }
   function abrir(id){ document.getElementById(id).classList.add('open'); }
   function cerrar(id){ document.getElementById(id).classList.remove('open'); }
