@@ -1273,8 +1273,8 @@
     s = s.replace(/\ba\s*\/\s*faci?l?\b/ig,' Abre Fácil ');
     s = s.replace(/\batun\b/ig,'Atún');
     s = s.replace(/\bcafe\b/ig,'Café');
-    s = s.replace(/(?:\d+\/)+(\d+)\s*g\b/ig,'$1g');   // packaging 48/160 g -> 160g
-    s = s.replace(/(\d+)\s+g\b/ig,'$1g');             // 160 g -> 160g
+    s = s.replace(/(?:\d+\/)+(\d+)\s*g\b/ig,'$1g');                 // packaging 48/160 g -> 160g
+    s = s.replace(/(\d+)\s*(?:gramos|grs|gr|g)\b/ig,'$1g');          // 140gr / 160 g / 140grs -> 140g
     s = s.trim().replace(/\s+/g,' ');
     const lower = new Set(['en','de','con','y','a','la','el','los','las','del','para','sin']);
     return s.split(' ').map((w,i)=>{
