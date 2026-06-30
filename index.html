@@ -279,6 +279,17 @@
   .panelchip{display:inline-flex;align-items:center;gap:8px;background:var(--greenbg);color:var(--green-d);border:1px solid var(--green);border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800;margin-bottom:12px}
   .panelchip button{background:none;border:none;color:var(--green-d);cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:0;opacity:.7}
   .panelchip button:hover{opacity:1}
+  /* panel de configuracion */
+  .cfg-row{margin-bottom:16px}
+  .cfg-row>label{display:block;font-size:11px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;margin-bottom:7px}
+  .cfg-seg{display:flex;gap:8px}
+  .cfg-seg button{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:11px;padding:11px;font-weight:800;font-size:13px;cursor:pointer;transition:.14s}
+  .cfg-seg button.on{border-color:var(--green);background:var(--greenbg);color:var(--green-d)}
+  .cfg-inline{display:flex;gap:8px}
+  .cfg-inline input{flex:1;margin:0}
+  .cfg-inline button{background:var(--green);color:#fff;border:none;border-radius:10px;padding:0 16px;font-weight:800;cursor:pointer;font-size:13px}
+  .cfg-btn{background:none;border:1px solid var(--line);color:var(--mut);width:100%;padding:11px;border-radius:11px;font-weight:700;cursor:pointer;font-size:13px;transition:.14s}
+  .cfg-btn:hover{border-color:var(--green);color:var(--green-d)}
 </style>
 </head>
 <body>
@@ -334,7 +345,7 @@
       <div class="sys"><span class="sl">Última actualización</span><span class="sv" id="sys-last">—</span></div>
       <div class="sys"><span class="sl">Próxima</span><span class="sv" id="sys-next">—</span></div>
       <button class="modobadge" id="modo-badge" onclick="toggleModo()" title="Cambiar entre modo consumidor y modo negocio">🛒 Modo consumidor</button>
-      <button class="icontop" onclick="onbReset()" title="Reconfigurar mi panel (volver a la pantalla de inicio)">⚙️</button>
+      <button class="icontop" onclick="abrirConfig()" title="Configuración (modo, categoría, marca, tema)">⚙️</button>
       <button class="icontop" id="btn-exec" onclick="toggleEjecutivo()" title="Vista ejecutiva (resumen en 1 minuto)">📊</button>
       <button class="icontop" id="btn-dark" onclick="toggleDark()" title="Cambiar tema claro/oscuro">🌙</button>
     </div>
@@ -493,6 +504,39 @@
       <input id="sim-monto" type="number" min="1" placeholder="Tengo $…" value="50" oninput="simular()" style="width:100%;margin-bottom:10px" />
       <div id="sim-cats" class="simcats"></div>
       <div id="sim-res"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="ov-config">
+    <div class="sheet" style="max-width:440px">
+      <button class="x" onclick="cerrar('ov-config')">✕</button>
+      <h2>⚙️ Configuración</h2>
+      <div class="ph" style="font-size:11px;color:var(--mut);margin:-6px 0 16px">Ajustá tu panel cuando quieras. Se guarda en este dispositivo.</div>
+      <div class="cfg-row">
+        <label>Modo de uso</label>
+        <div class="cfg-seg">
+          <button id="cfg-m-consumidor" onclick="cfgSetModo('consumidor')">🛒 Consumidor</button>
+          <button id="cfg-m-negocio" onclick="cfgSetModo('negocio')">📊 Negocio</button>
+        </div>
+      </div>
+      <div class="cfg-row">
+        <label>Categoría principal</label>
+        <select id="cfg-cat" onchange="cfgSetCat(this.value)"></select>
+      </div>
+      <div class="cfg-row">
+        <label>Mi marca o producto</label>
+        <div class="cfg-inline">
+          <input id="cfg-marca" placeholder="ej: La Sirena, Café Durán…" />
+          <button onclick="cfgSetMarca()">Guardar</button>
+        </div>
+      </div>
+      <div class="cfg-row">
+        <label>Tema</label>
+        <button class="cfg-btn" onclick="toggleDark()">🌙 Alternar claro / oscuro</button>
+      </div>
+      <div class="cfg-row" style="margin-bottom:0">
+        <button class="cfg-btn" onclick="cerrar('ov-config');onbReset()">↻ Volver a hacer el onboarding</button>
+      </div>
     </div>
   </div>
 
@@ -1059,6 +1103,34 @@
     delete p.marca; delete p.cat; localStorage.setItem('db_perfil', JSON.stringify(p));
     const sel = document.getElementById('f-marca'); if(sel){ sel.value=''; renderFade(); }
     document.getElementById('panel-chip').style.display = 'none';
+  }
+  // ===== Panel de configuracion (unifica modo, categoria, marca, tema, reonboarding) =====
+  function abrirConfig(){
+    document.getElementById('cfg-m-consumidor').classList.toggle('on', modoUsuario==='consumidor');
+    document.getElementById('cfg-m-negocio').classList.toggle('on', modoUsuario==='negocio');
+    document.getElementById('cfg-cat').innerHTML = CATS.map(c=>`<option value="${c.slug}">${c.nombre}</option>`).join('');
+    if(catActual) document.getElementById('cfg-cat').value = catActual.slug;
+    let p={}; try{ p=JSON.parse(localStorage.getItem('db_perfil')||'{}'); }catch(_e){}
+    document.getElementById('cfg-marca').value = p.marca || '';
+    abrir('ov-config');
+  }
+  function cfgSetModo(m){
+    aplicarModo(m, true);
+    document.getElementById('cfg-m-consumidor').classList.toggle('on', m==='consumidor');
+    document.getElementById('cfg-m-negocio').classList.toggle('on', m==='negocio');
+  }
+  function cfgSetCat(slug){
+    let p={}; try{ p=JSON.parse(localStorage.getItem('db_perfil')||'{}'); }catch(_e){}
+    p.cat = slug; localStorage.setItem('db_perfil', JSON.stringify(p));
+    selCat(slug); pintarPanelChip();
+  }
+  function cfgSetMarca(){
+    const v = (document.getElementById('cfg-marca').value||'').trim();
+    let p={}; try{ p=JSON.parse(localStorage.getItem('db_perfil')||'{}'); }catch(_e){}
+    p.marca = v || null; localStorage.setItem('db_perfil', JSON.stringify(p));
+    pintarPanelChip();
+    if(v){ const sel=document.getElementById('f-marca'); const norm=s=>(s||'').toLowerCase(); const w=norm(v.split(/\s+/)[0]); const opt=[...sel.options].find(o=>o.value && norm(o.value).includes(w)); if(opt){ sel.value=opt.value; renderFade(); } }
+    cerrar('ov-config');
   }
   function catArrows(){
     const b=document.getElementById('catbar'); if(!b) return;
