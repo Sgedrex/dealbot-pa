@@ -263,11 +263,23 @@
   .onb input{width:100%;margin-bottom:4px}
   .onb-load{text-align:center;padding:28px 0}
   .onb-load .sp{font-size:34px;animation:pulse 1.2s infinite}
+  .onb-pbar{height:5px;background:var(--line);border-radius:999px;overflow:hidden;margin-bottom:18px}
+  .onb-pbar i{display:block;height:100%;width:0;background:var(--green);border-radius:999px;transition:width .35s cubic-bezier(.22,1,.36,1)}
+  .onb-check{font-size:46px;display:inline-block;animation:pop .5s cubic-bezier(.18,1.5,.4,1)}
+  @keyframes pop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+  .onb-done-copy{font-size:14px;color:var(--txt);line-height:1.55;margin:8px 0 4px;font-weight:600}
+  .onb-resumen{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:12px 0 6px;font-size:13px;line-height:1.75;text-align:left}
+  .onb-btn2{background:none;border:none;color:var(--mut);font-size:12.5px;cursor:pointer;text-decoration:underline;margin-top:12px}
+  /* chip de panel personalizado en el dashboard */
+  .panelchip{display:inline-flex;align-items:center;gap:8px;background:var(--greenbg);color:var(--green-d);border:1px solid var(--green);border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800;margin-bottom:12px}
+  .panelchip button{background:none;border:none;color:var(--green-d);cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:0;opacity:.7}
+  .panelchip button:hover{opacity:1}
 </style>
 </head>
 <body>
   <div class="onb" id="onb">
     <div class="onb-card">
+      <div class="onb-pbar"><i id="onb-pbar-fill"></i></div>
       <div class="onb-step on" id="onb-0">
         <div class="onb-logo">🛒 Bienvenido a DealBot <span class="tag">PA</span></div>
         <div class="onb-sub" style="margin:8px 0 20px">Configurá tu panel en 30 segundos. Te hago 3 preguntas rápidas para adaptarlo a tu negocio.</div>
@@ -298,9 +310,11 @@
         <div class="onb-load"><div class="sp">🧠</div><div class="onb-q" style="margin-top:12px">Configurando tu panel…</div><div class="onb-sub">La IA está adaptando DealBot a tu negocio. Si pediste un producto nuevo, lo agregamos y buscamos precios en las tiendas (puede tardar ~30s).</div></div>
       </div>
       <div class="onb-step" id="onb-done">
-        <div class="onb-logo">✅ ¡Listo!</div>
-        <div class="onb-sub" id="onb-res" style="margin:14px 0 18px"></div>
+        <div style="text-align:center"><span class="onb-check">✅</span></div>
+        <div class="onb-logo" style="text-align:center;margin-top:6px">¡Tu panel está listo!</div>
+        <div id="onb-res" style="margin:10px 0 16px"></div>
         <button class="onb-next" style="width:100%" onclick="onbEntrar()">Entrar al dashboard →</button>
+        <div style="text-align:center"><button class="onb-btn2" onclick="onbReset()">Cambiar configuración</button></div>
       </div>
     </div>
   </div>
@@ -333,6 +347,7 @@
     <div class="catbar" id="catbar"></div>
     <button class="catarr" onclick="catScroll(1)" title="Siguiente">›</button>
   </div>
+  <div id="panel-chip" class="panelchip" style="display:none"></div>
 
   <div class="filtros">
     <input id="q" list="sug" autocomplete="off" placeholder="🔎 Buscar por nombre, marca o SKU…" oninput="render()" />
@@ -1025,6 +1040,21 @@
     if(document.getElementById('chat-sug') && document.getElementById('chat-sug').children.length) chatSugerencias();
   }
   function toggleModo(){ aplicarModo(modoUsuario==='negocio' ? 'consumidor' : 'negocio', true); }
+  // chip "Panel personalizado" segun el onboarding (marca o categoria principal elegida)
+  function pintarPanelChip(){
+    const chip = document.getElementById('panel-chip'); if(!chip) return;
+    let p = {}; try{ p = JSON.parse(localStorage.getItem('db_perfil')||'{}'); }catch(_e){}
+    let foco = p.marca;
+    if(!foco && p.cat){ const c = CATS.find(x=>x.slug===p.cat); foco = c ? c.nombre : null; }
+    if(foco){ chip.style.display=''; chip.innerHTML = '🎯 Panel personalizado: <span style="font-weight:900">'+foco+'</span> <button onclick="limpiarPersonalizacion()" title="Quitar personalización">✕</button>'; }
+    else chip.style.display = 'none';
+  }
+  function limpiarPersonalizacion(){
+    let p = {}; try{ p = JSON.parse(localStorage.getItem('db_perfil')||'{}'); }catch(_e){}
+    delete p.marca; delete p.cat; localStorage.setItem('db_perfil', JSON.stringify(p));
+    const sel = document.getElementById('f-marca'); if(sel){ sel.value=''; renderFade(); }
+    document.getElementById('panel-chip').style.display = 'none';
+  }
   function catArrows(){
     const b=document.getElementById('catbar'); if(!b) return;
     const hay = b.scrollWidth > b.clientWidth + 4;
@@ -1316,7 +1346,12 @@
     document.getElementById('onb-m-negocio').classList.toggle('sel', m==='negocio');
     document.getElementById('onb-next2').disabled = false;
   }
-  function onbPaso(id){ document.querySelectorAll('.onb-step').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+  function onbPaso(id){
+    document.querySelectorAll('.onb-step').forEach(s=>s.classList.remove('on'));
+    document.getElementById(id).classList.add('on');
+    const pct = ({'onb-0':0,'onb-1':33,'onb-2':66,'onb-3':100,'onb-load':100,'onb-done':100})[id];
+    const f = document.getElementById('onb-pbar-fill'); if(f && pct!=null) f.style.width = pct+'%';
+  }
   function onbIr(n){
     if(n===3 && onbModoSel==='consumidor'){ onbFinalizar(); return; }   // consumidor no necesita marca
     onbPaso('onb-'+n);
@@ -1333,17 +1368,23 @@
       onbCfg = await r.json();
     }catch(e){ onbCfg = { categoria_principal: CATS[0]?CATS[0].slug:'atun', categorias:[], modo: onbModoSel||'consumidor', marca: marca||null, no_disponibles:[], bienvenida:'¡Listo! Entrá al panel.' }; }
     const cats = (onbCfg.categorias||[]).map(s=>{ const c=CATS.find(x=>x.slug===s); return c?c.nombre:s; }).join(', ');
-    let html = onbCfg.bienvenida ? '<b style="color:var(--txt);font-size:14px">'+onbCfg.bienvenida+'</b><br><br>' : '';
-    if(cats) html += '📂 Categorías activadas: <b>'+cats+'</b><br>';
-    html += '🎯 Modo: <b>'+(onbCfg.modo==='negocio'?'Inteligencia para negocio':'Ahorro para consumidor')+'</b><br>';
+    const esNeg = onbCfg.modo==='negocio';
+    const intro = esNeg
+      ? 'Analizaremos <b>precios, competencia y oportunidades</b> para tu marca o categoría.'
+      : 'Te mostraremos los <b>mejores precios, oportunidades de ahorro y tiendas recomendadas</b>.';
+    let html = '<div class="onb-done-copy">'+intro+'</div><div class="onb-resumen">';
+    if(cats) html += '📂 Categoría: <b>'+cats+'</b><br>';
+    html += '🎯 Modo: <b>'+(esNeg?'Negocio · inteligencia competitiva':'Consumidor · ahorro')+'</b><br>';
     if(onbCfg.marca) html += '🏷️ Tu marca: <b>'+onbCfg.marca+'</b><br>';
-    if(onbCfg.no_disponibles && onbCfg.no_disponibles.length) html += '<span style="color:var(--mut);font-size:12px">ℹ️ Aún no monitoreamos: '+onbCfg.no_disponibles.join(', ')+' — lo agregaremos pronto.</span>';
+    html += '🔔 Recibirás: <b>'+(esNeg?'ranking, alertas y análisis de competencia':'los mejores precios y oportunidades de ahorro')+'</b>';
+    if(onbCfg.no_disponibles && onbCfg.no_disponibles.length) html += '<br><span style="color:var(--mut);font-size:11.5px">ℹ️ Aún no monitoreamos: '+onbCfg.no_disponibles.join(', ')+'</span>';
+    html += '</div>';
     document.getElementById('onb-res').innerHTML = html;
     onbPaso('onb-done');
   }
   async function onbEntrar(){
     localStorage.setItem('db_onboarded','1');
-    localStorage.setItem('db_perfil', JSON.stringify({ modo:onbCfg&&onbCfg.modo, marca:(onbCfg&&onbCfg.marca)||null }));
+    localStorage.setItem('db_perfil', JSON.stringify({ modo:onbCfg&&onbCfg.modo, marca:(onbCfg&&onbCfg.marca)||null, cat:(onbCfg&&onbCfg.categoria_principal)||null }));
     aplicarModo(onbCfg && onbCfg.modo ? onbCfg.modo : 'consumidor', false);
     document.getElementById('onb').classList.remove('open');
     // si se agregaron categorías nuevas (scrapeo bajo demanda), recargar la lista + catbar
@@ -1354,6 +1395,7 @@
     }
     if(onbCfg && onbCfg.categoria_principal && CATS.find(c=>c.slug===onbCfg.categoria_principal)) selCat(onbCfg.categoria_principal);
     else if(CATS.length) selCat(CATS[0].slug);
+    pintarPanelChip();
     // si dio una marca, intentar prefiltrar el comparador por ella
     if(onbCfg && onbCfg.marca){
       setTimeout(()=>{
@@ -1369,7 +1411,9 @@
   }
 
   window.addEventListener('resize', catArrows);
-  init().then(onbInit);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.getElementById('onb').classList.contains('open')) onbSaltar(); });
+  document.getElementById('onb').addEventListener('click', e=>{ if(e.target.id==='onb') onbSaltar(); });
+  init().then(onbInit).then(pintarPanelChip);
 </script>
 </body>
 </html>
