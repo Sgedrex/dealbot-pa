@@ -661,7 +661,7 @@
       return;
     }
     box.innerHTML = '<canvas id="chart-infl" height="170"></canvas>';
-    const labels = inflData.map(d=>new Date(d.periodo).toLocaleDateString('es-PA',{day:'2-digit',month:'short'}));
+    const labels = inflData.map(d=>{ const p=(d.periodo||'').slice(0,10).split('-'); return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('es-PA',{day:'2-digit',month:'short'}); });
     const vals = inflData.map(d=>Number(d.precio_promedio));
     if(chartInfl) chartInfl.destroy();
     const ctx = document.getElementById('chart-infl');
