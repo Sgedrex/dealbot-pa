@@ -1197,8 +1197,8 @@
 
     // autocompletar (nombres + marcas + SKU)
     const sug = new Set();
-    dealsData.forEach(d=>{ if(d.nombre) sug.add(d.nombre); if(d.marca) sug.add(d.marca); if(d.ean) sug.add(d.ean); });
-    document.getElementById("sug").innerHTML = [...sug].slice(0,400).map(s=>`<option value="${(s+'').replace(/"/g,'&quot;')}">`).join("");
+    dealsData.forEach(d=>{ if(d.nombre) sug.add(nombreLimpio(d.nombre)); if(d.marca) sug.add(d.marca); });
+    document.getElementById("sug").innerHTML = [...sug].sort((a,b)=>a.localeCompare(b)).slice(0,400).map(s=>`<option value="${(s+'').replace(/"/g,'&quot;')}">`).join("");
 
     ultimaTs = dealsData.map(d=>d.capturado_at).filter(Boolean).sort().pop();
     actualizarSysbar();
@@ -1235,7 +1235,7 @@
     const ref = document.getElementById("f-ref").value || "";
     return arr.filter(d=>{
       if(soloFavs && !favs.has(d.ean)) return false;
-      if(q && !((d.nombre||"").toLowerCase().includes(q) || (d.ean||"").includes(q) || (d.marca||"").toLowerCase().includes(q))) return false;
+      if(q && !((d.nombre||"").toLowerCase().includes(q) || nombreLimpio(d.nombre).toLowerCase().includes(q) || (d.ean||"").includes(q) || (d.marca||"").toLowerCase().includes(q))) return false;
       if(marca && d.marca!==marca) return false;
       if(ref && d.referencia!==ref) return false;
       return true;
