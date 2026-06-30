@@ -221,9 +221,72 @@
   .chat-foot input{flex:1;min-width:0;margin:0}
   .chat-foot button{background:var(--green);color:#fff;border:none;border-radius:10px;padding:0 15px;font-weight:800;font-size:15px;cursor:pointer}
   .chat-foot button:disabled{opacity:.6;cursor:wait}
+  /* ===== Onboarding (pantalla de inicio) ===== */
+  .onb{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+  .onb.open{display:flex}
+  .onb-card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.25);max-width:470px;width:100%;padding:26px}
+  .onb-logo{font-size:21px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+  .onb-logo .tag{background:var(--green);color:#fff;border-radius:7px;padding:1px 7px;font-size:16px}
+  .onb-sub{font-size:13px;color:var(--mut);line-height:1.5}
+  .onb-step{display:none}.onb-step.on{display:block;animation:sheetin .3s cubic-bezier(.22,1,.36,1)}
+  .onb-prog{font-size:11px;color:var(--mut);font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .onb-dots{display:flex;gap:5px}.onb-dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.onb-dots i.a{background:var(--green)}
+  .onb-q{font-size:18px;font-weight:800;margin-bottom:14px;letter-spacing:-.3px}
+  .onb-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .onb-chip{border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:.12s}
+  .onb-chip.sel{background:var(--green);color:#fff;border-color:var(--green)}
+  .onb-opt{display:block;border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:9px;cursor:pointer;font-size:14px;font-weight:700;transition:.12s}
+  .onb-opt.sel{border-color:var(--green);background:var(--greenbg);color:var(--green-d)}
+  .onb-opt small{display:block;font-weight:500;color:var(--mut);font-size:12px;margin-top:2px}
+  .onb-nav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px}
+  .onb-skip{background:none;border:none;color:var(--mut);font-size:12px;cursor:pointer;text-decoration:underline}
+  .onb-next{background:var(--green);color:#fff;border:none;border-radius:11px;padding:11px 20px;font-size:14px;font-weight:800;cursor:pointer}
+  .onb-next:disabled{opacity:.45;cursor:not-allowed}
+  .onb input{width:100%;margin-bottom:4px}
+  .onb-load{text-align:center;padding:28px 0}
+  .onb-load .sp{font-size:34px;animation:pulse 1.2s infinite}
 </style>
 </head>
 <body>
+  <div class="onb" id="onb">
+    <div class="onb-card">
+      <div class="onb-step on" id="onb-0">
+        <div class="onb-logo">🛒 Bienvenido a DealBot <span class="tag">PA</span></div>
+        <div class="onb-sub" style="margin:8px 0 20px">Configurá tu panel en 30 segundos. Te hago 3 preguntas rápidas para adaptarlo a tu negocio.</div>
+        <div class="onb-nav"><button class="onb-skip" onclick="onbSaltar()">Saltar, ya lo conozco</button><button class="onb-next" onclick="onbIr(1)">Empezar →</button></div>
+      </div>
+      <div class="onb-step" id="onb-1">
+        <div class="onb-prog">PASO 1 DE 3 <span class="onb-dots"><i class="a"></i><i></i><i></i></span></div>
+        <div class="onb-q">¿Qué productos te interesa monitorear?</div>
+        <div class="onb-chips" id="onb-cats"></div>
+        <input id="onb-otros" placeholder="o escribí otros: aceite, leche, pasta…" />
+        <div class="onb-nav"><button class="onb-skip" onclick="onbIr(0)">← Atrás</button><button class="onb-next" onclick="onbIr(2)">Siguiente →</button></div>
+      </div>
+      <div class="onb-step" id="onb-2">
+        <div class="onb-prog">PASO 2 DE 3 <span class="onb-dots"><i class="a"></i><i class="a"></i><i></i></span></div>
+        <div class="onb-q">¿Cómo vas a usar DealBot?</div>
+        <label class="onb-opt" id="onb-m-consumidor" onclick="onbModo('consumidor')">🛒 Soy consumidor<small>Quiero ahorrar en mis compras</small></label>
+        <label class="onb-opt" id="onb-m-negocio" onclick="onbModo('negocio')">🏭 Tengo un negocio o marca<small>Quiero vigilar a mi competencia</small></label>
+        <div class="onb-nav"><button class="onb-skip" onclick="onbIr(1)">← Atrás</button><button class="onb-next" id="onb-next2" onclick="onbIr(3)" disabled>Siguiente →</button></div>
+      </div>
+      <div class="onb-step" id="onb-3">
+        <div class="onb-prog">PASO 3 DE 3 <span class="onb-dots"><i class="a"></i><i class="a"></i><i class="a"></i></span></div>
+        <div class="onb-q">¿Qué marca o producto vendés?</div>
+        <div class="onb-sub" style="margin-bottom:10px">Para enfocar tu competencia. Podés dejarlo vacío.</div>
+        <input id="onb-marca" placeholder="ej: Atún Calvo, Café Durán…" />
+        <div class="onb-nav"><button class="onb-skip" onclick="onbIr(2)">← Atrás</button><button class="onb-next" onclick="onbFinalizar()">Crear mi panel →</button></div>
+      </div>
+      <div class="onb-step" id="onb-load">
+        <div class="onb-load"><div class="sp">🧠</div><div class="onb-q" style="margin-top:12px">Configurando tu panel…</div><div class="onb-sub">La IA está adaptando DealBot a tu negocio.</div></div>
+      </div>
+      <div class="onb-step" id="onb-done">
+        <div class="onb-logo">✅ ¡Listo!</div>
+        <div class="onb-sub" id="onb-res" style="margin:14px 0 18px"></div>
+        <button class="onb-next" style="width:100%" onclick="onbEntrar()">Entrar al dashboard →</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <div>
       <h1>🛒 DealBot <span class="tag">PA</span></h1>
@@ -233,6 +296,7 @@
       <div class="sys on"><span class="dot"></span><div><div class="sl">Estado</div><div class="sv">Online</div></div></div>
       <div class="sys"><span class="sl">Última actualización</span><span class="sv" id="sys-last">—</span></div>
       <div class="sys"><span class="sl">Próxima</span><span class="sv" id="sys-next">—</span></div>
+      <button class="icontop" onclick="onbReset()" title="Reconfigurar mi panel (volver a la pantalla de inicio)">⚙️</button>
       <button class="icontop" id="btn-exec" onclick="toggleEjecutivo()" title="Vista ejecutiva (resumen en 1 minuto)">📊</button>
       <button class="icontop" id="btn-dark" onclick="toggleDark()" title="Cambiar tema claro/oscuro">🌙</button>
     </div>
@@ -459,7 +523,7 @@
     });
   }
   function animarKPIs(){
-    const total=dealsData.length, comp=compData.filter(d=>nRetailCount(d)>=2).length;
+    const total=dealsData.length, comp=compData.filter(esComparable).length;
     const deals=dealsData.filter(d=>!esMayorista(d.retailer)&&d.es_deal).length;
     const maxSave=compData.reduce((m,d)=>Math.max(m,Number(d.ahorro_pct)||0),0);
     animCount('k-prod', total, v=>String(Math.round(v)));
@@ -482,7 +546,7 @@
   // ===== Insights automáticos (resumen por reglas, sin IA externa) =====
   function renderInsights(){
     const catN = catActual ? catActual.nombre : '';
-    const conAhorro = compData.filter(d=>Number(d.ahorro_pct)>0);
+    const conAhorro = compData.filter(d=>esComparable(d) && Number(d.ahorro_pct)>0);
     const rk = [...rankData].sort((a,b)=>Number(a.indice_precio)-Number(b.indice_precio));
     const masBarato = rk[0], masCaro = rk[rk.length-1];
     const best = [...conAhorro].sort((a,b)=>Number(b.ahorro_pct)-Number(a.ahorro_pct))[0];
@@ -499,7 +563,7 @@
 
     // resumen del día
     const li = [
-      `Hoy se comparan <b>${compData.filter(d=>nRetailCount(d)>=2).length}</b> productos de <b>${catN}</b> entre 7 supermercados.`,
+      `Hoy se comparan <b>${compData.filter(esComparable).length}</b> productos de <b>${catN}</b> entre 7 supermercados.`,
       masBarato ? `<b>${tn(masBarato.retailer)}</b> lidera en precios bajos (gana ${masBarato.veces_mas_barata}/${masBarato.productos} comparaciones).` : '',
       best ? `El mayor ahorro encontrado es <b>${Number(best.ahorro_pct).toFixed(0)}%</b> (${money(best.ahorro_abs)}) en ${best.nombre}.` : '',
       conAhorro.length ? `La oportunidad promedio es de <b>${money(avg)}</b> por producto; hay <b>${nDeals}</b> con descuento activo.` : `Aún no hay diferencias de precio comparables en ${catN}.`,
@@ -979,8 +1043,26 @@
 
   // nº de tiendas retail que tienen el producto (para excluir "1 retail" del comparador)
   const nRetailCount = d => [d.precio_xtra,d.precio_rey,d.precio_99,d.precio_carnes,d.precio_baru,d.precio_mach].filter(p=>Number(p)>0).length;
+  // tamaño (g/ml) extraido del nombre, para NO comparar presentaciones distintas (ej. 22g vs 212g)
+  function gramajeG(n){
+    if(!n) return null; const s=(''+n).toLowerCase(); let m;
+    if((m=s.match(/(\d+(?:[.,]\d+)?)\s*kg/)))    return parseFloat(m[1].replace(',','.'))*1000;
+    if((m=s.match(/(\d+(?:[.,]\d+)?)\s*l\b/)))   return parseFloat(m[1].replace(',','.'))*1000;
+    if((m=s.match(/(\d+(?:[.,]\d+)?)\s*ml/)))    return parseFloat(m[1].replace(',','.'));
+    if((m=s.match(/(\d+(?:[.,]\d+)?)\s*oz/)))    return parseFloat(m[1].replace(',','.'))*28.35;
+    if((m=s.match(/(\d+(?:[.,]\d+)?)\s*gr?s?\b/)))return parseFloat(m[1].replace(',','.'));
+    return null;
+  }
+  function tamanoDispar(d){
+    const N=[d.nombre_xtra,d.nombre_rey,d.nombre_99,d.nombre_carnes,d.nombre_baru,d.nombre_mach];
+    const P=[d.precio_xtra,d.precio_rey,d.precio_99,d.precio_carnes,d.precio_baru,d.precio_mach];
+    const gs=[]; for(let i=0;i<6;i++){ if(Number(P[i])>0){ const g=gramajeG(N[i]||d.nombre); if(g) gs.push(g); } }
+    if(gs.length<2) return false;
+    return Math.max(...gs)/Math.min(...gs) > 1.4;   // >40% de diferencia de tamaño = no comparable
+  }
+  const esComparable = d => nRetailCount(d)>=2 && !tamanoDispar(d);
   function render(){
-    let comp = aplicaFiltros(compData).filter(d=>nRetailCount(d)>=2);  // solo comparables (2+ tiendas)
+    let comp = aplicaFiltros(compData).filter(esComparable);  // 2+ tiendas y mismo tamaño
     if(filtroGana) comp = comp.filter(d=>d.tienda_mas_barata===(tiendaNombre[filtroGana]||filtroGana));
     const fg = document.getElementById('filtro-gana');
     if(filtroGana){ fg.style.display='flex'; fg.innerHTML = `<span style="font-size:12px;color:var(--mut)">Mostrando productos donde gana</span> <span class="chip ${chipClass(filtroGana)}">${tiendaNombre[filtroGana]||filtroGana}</span> <button class="iconbtn" onclick="limpiarGana()" title="Quitar filtro">✕</button>`; }
@@ -1121,7 +1203,78 @@
     }
   }
 
-  init();
+  // ===== Onboarding (pantalla de inicio, Agente 2) =====
+  const ONBOARD_URL = "https://xjkpaxsptfmpkgtymbuu.supabase.co/functions/v1/dealbot-onboard";
+  const onbSel = new Set();
+  let onbModoSel = '', onbCfg = null;
+  function onbInit(){
+    document.getElementById('onb-cats').innerHTML = CATS.map(c=>
+      `<span class="onb-chip" onclick="onbChip(this,'${c.slug}')">${iconCat(c.slug)} ${c.nombre}</span>`).join('');
+    if(!localStorage.getItem('db_onboarded')) document.getElementById('onb').classList.add('open');
+  }
+  function onbReset(){
+    localStorage.removeItem('db_onboarded'); localStorage.removeItem('db_perfil');
+    onbSel.clear(); onbModoSel=''; onbCfg=null;
+    document.querySelectorAll('#onb-cats .onb-chip').forEach(c=>c.classList.remove('sel'));
+    document.getElementById('onb-otros').value=''; document.getElementById('onb-marca').value='';
+    document.getElementById('onb-m-consumidor').classList.remove('sel');
+    document.getElementById('onb-m-negocio').classList.remove('sel');
+    document.getElementById('onb-next2').disabled = true;
+    onbPaso('onb-0');
+    document.getElementById('onb').classList.add('open');
+  }
+  function onbChip(el, slug){ el.classList.toggle('sel'); if(onbSel.has(slug)) onbSel.delete(slug); else onbSel.add(slug); }
+  function onbModo(m){
+    onbModoSel = m;
+    document.getElementById('onb-m-consumidor').classList.toggle('sel', m==='consumidor');
+    document.getElementById('onb-m-negocio').classList.toggle('sel', m==='negocio');
+    document.getElementById('onb-next2').disabled = false;
+  }
+  function onbPaso(id){ document.querySelectorAll('.onb-step').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+  function onbIr(n){
+    if(n===3 && onbModoSel==='consumidor'){ onbFinalizar(); return; }   // consumidor no necesita marca
+    onbPaso('onb-'+n);
+  }
+  function onbSaltar(){ localStorage.setItem('db_onboarded','1'); document.getElementById('onb').classList.remove('open'); }
+  async function onbFinalizar(){
+    onbPaso('onb-load');
+    const nombres = [...onbSel].map(s=>{ const c=CATS.find(x=>x.slug===s); return c?c.nombre:s; });
+    const otros = (document.getElementById('onb-otros').value||'').trim();
+    const productos = [...nombres, ...(otros?[otros]:[])].join(', ');
+    const marca = (document.getElementById('onb-marca').value||'').trim();
+    try{
+      const r = await fetch(ONBOARD_URL,{ method:'POST', headers:{'content-type':'application/json','authorization':'Bearer '+SUPABASE_ANON,'apikey':SUPABASE_ANON}, body: JSON.stringify({ productos, modo: onbModoSel||'consumidor', marca }) });
+      onbCfg = await r.json();
+    }catch(e){ onbCfg = { categoria_principal: CATS[0]?CATS[0].slug:'atun', categorias:[], modo: onbModoSel||'consumidor', marca: marca||null, no_disponibles:[], bienvenida:'¡Listo! Entrá al panel.' }; }
+    const cats = (onbCfg.categorias||[]).map(s=>{ const c=CATS.find(x=>x.slug===s); return c?c.nombre:s; }).join(', ');
+    let html = onbCfg.bienvenida ? '<b style="color:var(--txt);font-size:14px">'+onbCfg.bienvenida+'</b><br><br>' : '';
+    if(cats) html += '📂 Categorías activadas: <b>'+cats+'</b><br>';
+    html += '🎯 Modo: <b>'+(onbCfg.modo==='negocio'?'Inteligencia para negocio':'Ahorro para consumidor')+'</b><br>';
+    if(onbCfg.marca) html += '🏷️ Tu marca: <b>'+onbCfg.marca+'</b><br>';
+    if(onbCfg.no_disponibles && onbCfg.no_disponibles.length) html += '<span style="color:var(--mut);font-size:12px">ℹ️ Aún no monitoreamos: '+onbCfg.no_disponibles.join(', ')+' — lo agregaremos pronto.</span>';
+    document.getElementById('onb-res').innerHTML = html;
+    onbPaso('onb-done');
+  }
+  function onbEntrar(){
+    localStorage.setItem('db_onboarded','1');
+    localStorage.setItem('db_perfil', JSON.stringify({ modo:onbCfg&&onbCfg.modo, marca:(onbCfg&&onbCfg.marca)||null }));
+    document.getElementById('onb').classList.remove('open');
+    if(onbCfg && onbCfg.categoria_principal && CATS.find(c=>c.slug===onbCfg.categoria_principal)) selCat(onbCfg.categoria_principal);
+    // si dio una marca, intentar prefiltrar el comparador por ella
+    if(onbCfg && onbCfg.marca){
+      setTimeout(()=>{
+        const norm = s => (s||'').toLowerCase().normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]','g'),'');
+        const generic = ['cafe','atun','arroz','sardina','sardinas','vegetales','enlatados','de','el','la','los','las','marca','mi'];
+        const palabras = norm(onbCfg.marca).split(/\s+/).filter(w=>w.length>2 && !generic.includes(w));
+        const sel = document.getElementById('f-marca');
+        let opt = null;
+        for(const w of palabras){ opt = [...sel.options].find(o=>o.value && norm(o.value).includes(w)); if(opt) break; }
+        if(opt){ sel.value = opt.value; renderFade(); }
+      }, 900);
+    }
+  }
+
+  init().then(onbInit);
 </script>
 </body>
 </html>
