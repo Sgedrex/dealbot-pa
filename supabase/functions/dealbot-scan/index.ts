@@ -1,12 +1,12 @@
-// DealBot — Edge Function: scrapea las 6 tiendas, guarda precios, detecta caídas y avisa por Telegram.
-// Desplegar: supabase functions deploy dealbot-scan --no-verify-jwt
-// Secrets requeridos: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (supabase secrets set ...)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// DealBot — Edge Function: scrapea las 7 tiendas, guarda precios, detecta caidas y avisa por Telegram.
+// Disponibilidad: VTEX expone AvailableQuantity/IsAvailable y Rey isAvailable/stock -> se marca 'disponible'
+// para que el upsert ponga activo=false en agotados (no aparecen como "mas barato" fantasma).
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TG_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
-const TG_CHAT  = Deno.env.get("TELEGRAM_CHAT_ID") ?? "";
+const TG_TOKEN = "8939900863:AAEcl1PD728S9FGr40bCCIYXBF6VsPSugD4";
+const TG_CHAT  = "5094735421";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36";
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, GET, OPTIONS", "access-control-allow-headers": "*", "content-type": "application/json" };
 
@@ -17,17 +17,26 @@ const S99_HEADERS = { "content-type": "application/json", "x-api-key": "da886b56
 const S99_QUERY = `query S($phrase: String!, $pageSize: Int, $currentPage: Int, $filter: [SearchClauseInput!], $context: QueryContextInput) { productSearch(phrase: $phrase, page_size: $pageSize, current_page: $currentPage, filter: $filter, context: $context) { items { product { sku name price_range { minimum_price { regular_price { value } final_price { value } } } } productView { attributes { name value } } } } }`;
 
 function tiendaNombre(r: string) {
-  const m: any = { superxtra: "SuperXtra", superrey: "Super Rey", msmega: "MsMega", super99: "Super99", supercarnes: "SuperCarnes", superbaru: "Super Barú" };
+  const m: any = { superxtra: "SuperXtra", superrey: "Super Rey", msmega: "MsMega", super99: "Super99", supercarnes: "SuperCarnes", superbaru: "Super Barú", machetazo: "El Machetazo" };
   return m[r] ?? r;
 }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+// VTEX (SuperXtra, Machetazo): commertialOffer.AvailableQuantity = 0 / IsAvailable false -> agotado.
+function mapVtex(arr: any[], retailer: string, dominio: string) {
+  return arr.map((p: any) => { const item = p.items?.[0] ?? {}; const offer = item.sellers?.[0]?.commertialOffer ?? {}; return { retailer, product_id: String(p.productId), ean: item.ean ?? "", nombre: p.productName ?? "", marca: p.brand ?? "", link: `https://${dominio}/${p.linkText}/p`, price: Number(offer.Price ?? 0), list_price: offer.ListPrice != null ? String(offer.ListPrice) : "", disponible: Number(offer.AvailableQuantity ?? 0) > 0 && offer.IsAvailable !== false }; }).filter((x: any) => x.price > 0);
+}
+
 async function fetchXtra(term: string) {
-  const url = `https://www.superxtra.com/api/catalog_system/pub/products/search?ft=${encodeURIComponent(term)}&_from=0&_to=49`;
-  const res = await fetch(url, { headers: { accept: "application/json", "user-agent": UA } });
+  const res = await fetch(`https://www.superxtra.com/api/catalog_system/pub/products/search?ft=${encodeURIComponent(term)}&_from=0&_to=49`, { headers: { accept: "application/json", "user-agent": UA } });
   if (!res.ok) return [];
-  const arr = await res.json();
-  return arr.map((p: any) => { const item = p.items?.[0] ?? {}; const offer = item.sellers?.[0]?.commertialOffer ?? {}; return { retailer: "superxtra", product_id: String(p.productId), ean: item.ean ?? "", nombre: p.productName ?? "", marca: p.brand ?? "", link: `https://www.superxtra.com/${p.linkText}/p`, price: Number(offer.Price ?? 0), list_price: offer.ListPrice != null ? String(offer.ListPrice) : "" }; }).filter((x: any) => x.price > 0);
+  return mapVtex(await res.json(), "superxtra", "www.superxtra.com");
+}
+
+async function fetchMachetazo(term: string) {
+  const res = await fetch(`https://www.elmachetazo.com/api/catalog_system/pub/products/search?ft=${encodeURIComponent(term)}&_from=0&_to=49`, { headers: { accept: "application/json", "user-agent": UA } });
+  if (!res.ok) return [];
+  return mapVtex(await res.json(), "machetazo", "www.elmachetazo.com");
 }
 
 async function fetchRey(term: string) {
@@ -36,7 +45,7 @@ async function fetchRey(term: string) {
   if (!res.ok) return [];
   const json = await res.json();
   const prods = json?.[0]?.data?.searchProducts?.products ?? json?.data?.searchProducts?.products ?? [];
-  return prods.map((p: any) => ({ retailer: "superrey", product_id: String(p.sku), ean: String(p.sku), nombre: p.name ?? "", marca: "", link: `https://www.smrey.com/search?name=${encodeURIComponent(p.name ?? "")}`, price: Number(p.price ?? 0), list_price: "" })).filter((x: any) => x.price > 0);
+  return prods.map((p: any) => ({ retailer: "superrey", product_id: String(p.sku), ean: String(p.sku), nombre: p.name ?? "", marca: "", link: `https://www.smrey.com/search?name=${encodeURIComponent(p.name ?? "")}`, price: Number(p.price ?? 0), list_price: "", disponible: p.isAvailable !== false && Number(p.stock ?? 1) > 0 })).filter((x: any) => x.price > 0);
 }
 
 async function fetchMsMega(term: string) {
@@ -44,8 +53,7 @@ async function fetchMsMega(term: string) {
   const seen = new Set<string>(); const out: any[] = [];
   const variants = Array.from(new Set([term.toLowerCase(), cap(term.toLowerCase())]));
   for (const t of variants) {
-    const url = `https://distlong.com/msmega/catalogo.php?lang=ES&pages=0&cinfo=${encodeURIComponent(t)}&grupo=&marca=`;
-    const res = await fetch(url, { headers: { "user-agent": UA } });
+    const res = await fetch(`https://distlong.com/msmega/catalogo.php?lang=ES&pages=0&cinfo=${encodeURIComponent(t)}&grupo=&marca=`, { headers: { "user-agent": UA } });
     if (!res.ok) continue;
     const html = await res.text(); let m: RegExpExecArray | null; re.lastIndex = 0;
     while ((m = re.exec(html)) !== null) { const codig = m[1]; if (seen.has(codig)) continue; seen.add(codig); out.push({ retailer: "msmega", product_id: codig, ean: codig, nombre: m[3].trim(), marca: "", link: `https://distlong.com/msmega/catalogo.php?lang=ES&cinfo=${encodeURIComponent(m[3].trim())}`, price: Number(m[2]), list_price: "" }); }
@@ -85,7 +93,7 @@ async function fetchSuperBaru(term: string) {
   return results.filter((x: any) => x.price > 0);
 }
 
-const FETCHERS = [fetchXtra, fetchRey, fetchMsMega, fetchSuper99, fetchSuperCarnes, fetchSuperBaru];
+const FETCHERS = [fetchXtra, fetchMachetazo, fetchRey, fetchMsMega, fetchSuper99, fetchSuperCarnes, fetchSuperBaru];
 
 async function rpc(fn: string, args: any) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers: { "content-type": "application/json", apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}` }, body: JSON.stringify(args) });
@@ -97,7 +105,7 @@ async function getCategorias() {
   return res.ok ? await res.json() : [];
 }
 async function insertAlerta(a: any) { await fetch(`${SUPABASE_URL}/rest/v1/dealbot_alertas`, { method: "POST", headers: { "content-type": "application/json", apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, prefer: "return=minimal" }, body: JSON.stringify({ producto_id: a.producto_id, price: a.price, list_price: a.list_price, caida_pct: a.desc_pct, motivo: a.motivo }) }); }
-async function sendTelegram(text: string) { if (!TG_TOKEN || !TG_CHAT) return; await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "HTML", disable_web_page_preview: true }) }); }
+async function sendTelegram(text: string) { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "HTML", disable_web_page_preview: true }) }); }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
