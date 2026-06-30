@@ -207,10 +207,13 @@
   .chat-head{background:linear-gradient(135deg,var(--green),var(--green-d));color:#fff;padding:12px 14px;font-weight:800;font-size:14px;display:flex;justify-content:space-between;align-items:center}
   .chat-head .x{background:rgba(255,255,255,.22);border:none;color:#fff;border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:15px}
   .chat-body{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
-  .msg{max-width:86%;padding:9px 12px;border-radius:13px;font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .msg{max-width:88%;padding:10px 13px;border-radius:13px;font-size:13px;line-height:1.55;word-break:break-word}
   .msg.u{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px}
   .msg.a{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
-  .msg.a.load{color:var(--mut);font-style:italic}
+  .msg.a b{font-weight:800}
+  .msg.a .li{display:flex;gap:7px;margin-top:5px}
+  .msg.a .li .n{color:var(--green-d);font-weight:800;flex:none}
+  .msg.a.load{color:var(--mut);font-style:italic;animation:pulse 1.3s infinite}
   .chat-sug{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px;background:var(--bg)}
   .chat-sug button{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11px;cursor:pointer;color:var(--txt);text-align:left}
   .chat-sug button:hover{border-color:var(--green);color:var(--green-d)}
@@ -1069,11 +1072,20 @@
       setTimeout(()=>document.getElementById('chat-input').focus(), 100);
     }
   }
-  function chatMsg(tipo, texto){
+  function chatFmt(t){
+    let s = (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    s = s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');                       // **negrita**
+    s = s.replace(/(?:^|\n)\s*(\d+)[\.\)]\s+([^\n]+)/g,                 // listas numeradas
+      (m,n,txt)=>`<div class="li"><span class="n">${n}.</span><span>${txt}</span></div>`);
+    s = s.replace(/\n/g,'<br>');
+    return s;
+  }
+  function chatMsg(tipo, texto, opts){
+    opts = opts || {};
     const b = document.getElementById('chat-body');
     const d = document.createElement('div');
-    d.className = 'msg '+tipo + (texto==='…'?' load':'');
-    d.textContent = texto;
+    d.className = 'msg '+tipo + (opts.load?' load':'');
+    if(opts.html) d.innerHTML = chatFmt(texto); else d.textContent = texto;
     b.appendChild(d); b.scrollTop = b.scrollHeight;
     return d;
   }
@@ -1089,7 +1101,7 @@
     input.value = '';
     document.getElementById('chat-sug').innerHTML = '';
     chatMsg('u', q);
-    const load = chatMsg('a', '…');
+    const load = chatMsg('a', 'Escribiendo…', {load:true});
     const btn = document.getElementById('chat-send'); btn.disabled = true;
     try{
       const r = await fetch(CHAT_URL, {
@@ -1099,7 +1111,7 @@
       });
       const j = await r.json();
       load.classList.remove('load');
-      load.textContent = j.texto || 'No tengo una respuesta para eso.';
+      load.innerHTML = chatFmt(j.texto || 'No tengo una respuesta para eso.');
     }catch(e){
       load.classList.remove('load');
       load.textContent = 'No pude conectar con el asistente. Reintentá en un momento.';
